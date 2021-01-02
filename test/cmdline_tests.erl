@@ -97,3 +97,25 @@ parse_separator_without_arguments_test_() ->
   [?_assert(cmdline:has_option("a", C)),
    ?_assert(cmdline:has_option("x", C)),
    ?_assertEqual("1", cmdline:get_option("x", C))].
+
+parse_only_trailing_arguments_test_() ->
+  Config = [{trailing_arguments, "args", ""} | option_config()],
+  Parse = fun (Args) ->
+              {ok, C} = cmdline:parse("test", Args, Config),
+              cmdline:get_trailing_arguments(C)
+          end,
+  [?_assertEqual([], Parse([])),
+   ?_assertEqual([], Parse(["-a", "-x", "1"])),
+   ?_assertEqual(["foo"], Parse(["-a", "-x", "1", "foo"])),
+   ?_assertEqual(["foo", "bar"], Parse(["-a", "-x", "1", "foo", "bar"])),
+   ?_assertEqual(["foo", "bar"], Parse(["foo", "bar"]))].
+
+parse_trailing_arguments_test_() ->
+  Config = [{trailing_arguments, "args", ""} | full_config()],
+  Parse = fun (Args) ->
+              {ok, C} = cmdline:parse("test", Args, Config),
+              cmdline:get_trailing_arguments(C)
+          end,
+  [?_assertEqual([], Parse(["a1", "a2"])),
+   ?_assertEqual(["foo"], Parse(["a1", "a2", "foo"])),
+   ?_assertEqual(["foo", "bar"], Parse(["a1", "a2", "foo", "bar"]))].

@@ -16,13 +16,15 @@
 
 -export([parse/3,
          has_option/2, get_option/2, get_option/3, get_argument/2,
+         get_trailing_arguments/1,
          format_error/1]).
 
 -export_type([cmdline/0, options/0, arguments/0,
               error/0]).
 
 -type cmdline() :: #{options := options(),
-                     arguments := arguments()}.
+                     arguments := arguments(),
+                     trailing_arguments => [string()]}.
 
 -type options() :: #{string() := string() | boolean()}.
 -type arguments() :: #{string() := string()}.
@@ -81,9 +83,9 @@ parse_option(Name, Arg0, Args, Config, Cmdline) ->
       throw({error, {unknown_option, Name}})
   end.
 
--spec parse_arguments(string(), [string()],
-                      cmdline_config:config(), cmdline()) -> cmdline().
-parse_arguments(_Arg0, Args, Config, Cmdline) ->
+-spec parse_arguments(string(), [string()], cmdline_config:config(),
+                      cmdline()) -> cmdline().
+parse_arguments(Arg0, Args, Config, Cmdline) ->
   ArgumentConfigs = cmdline_config:get_arguments(Config),
   NbArgumentConfigs = length(ArgumentConfigs),
   length(Args) < NbArgumentConfigs andalso
@@ -92,12 +94,22 @@ parse_arguments(_Arg0, Args, Config, Cmdline) ->
   Arguments = lists:foldl(fun ({Value, {argument, Name, _}}, Acc) ->
                               Acc#{Name => Value}
                           end, #{}, lists:zip(Args1, ArgumentConfigs)),
-  Cmdline2 = Cmdline#{arguments => Arguments},
-  case Args2 of
-    [] ->
-      Cmdline2;
-    _ ->
-      throw({error, unhandled_arguments})
+  parse_trailing_arguments(Arg0, Args2, Config,
+                           Cmdline#{arguments => Arguments}).
+
+-spec parse_trailing_arguments(string(), [string()], cmdline_config:config(),
+                               cmdline()) -> cmdline().
+parse_trailing_arguments(_Arg0, Args, Config, Cmdline) ->
+  case cmdline_config:find_trailing_arguments(Config) of
+    {ok, {trailing_arguments, _, _}} ->
+      Cmdline#{trailing_arguments => Args};
+    error ->
+      case Args of
+        [] ->
+          Cmdline;
+        _ ->
+          throw({error, unhandled_arguments})
+      end
   end.
 
 -spec has_option(string(), cmdline()) -> boolean().
@@ -115,6 +127,10 @@ get_option(Name, #{options := Options}, Default) ->
 -spec get_argument(string(), cmdline()) -> string().
 get_argument(Name, #{arguments := Arguments}) ->
   maps:get(Name, Arguments).
+
+-spec get_trailing_arguments(cmdline()) -> string().
+get_trailing_arguments(Cmdline) ->
+  maps:get(trailing_arguments, Cmdline, []).
 
 -spec add_default_options(cmdline(), cmdline_config:config()) -> cmdline().
 add_default_options(Cmdline, []) ->
