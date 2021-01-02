@@ -18,23 +18,8 @@
          has_option/2, get_option/2, get_option/3, get_argument/2,
          format_error/1]).
 
--export_type([config/0, config_entry/0,
-              cmdline/0, options/0, arguments/0,
+-export_type([cmdline/0, options/0, arguments/0,
               error/0]).
-
--type config() :: [config_entry()].
-
--type config_entry() ::
-        {flag,
-         Short :: optional_string(), Long :: optional_string(),
-         Description :: string()}
-      | {option,
-         Short :: optional_string(), Long :: optional_string(),
-         Value :: string(), Default :: optional_string(),
-         Description :: string()}
-      | {argument,
-         Name :: string(),
-         Description :: string()}.
 
 -type cmdline() :: #{options := options(),
                      arguments := arguments()}.
@@ -46,10 +31,10 @@
 
 -type optional_string() :: string() | undefined.
 
--spec parse(string(), [string()], config()) ->
+-spec parse(string(), [string()], cmdline_config:config()) ->
         {ok, cmdline()} | {error, error()}.
 parse(Arg0, Args, Config0) ->
-  Config = maybe_add_help_flag(Config0),
+  Config = cmdline_config:maybe_add_help_flag(Config0),
   Cmdline0 = #{options => #{},
                arguments => #{}},
   Cmdline = add_default_options(Cmdline0, Config),
@@ -60,7 +45,8 @@ parse(Arg0, Args, Config0) ->
       {error, Reason}
   end.
 
--spec parse_options(string(), [string()], config(), cmdline()) -> cmdline().
+-spec parse_options(string(), [string()], cmdline_config:config(),
+                    cmdline()) -> cmdline().
 parse_options(_Arg0, [], Config, Cmdline) ->
   finalize(Cmdline, Config);
 parse_options(Arg0, ["--" | Args], Config, Cmdline) ->
@@ -74,10 +60,10 @@ parse_options(Arg0, [[$- | Name] | Args], Config, Cmdline) ->
 parse_options(Arg0, Args, Config, Cmdline) ->
   parse_arguments(1, Arg0, Args, Config, Cmdline).
 
--spec parse_option(string(), string(), [string()], config(), cmdline()) ->
-        cmdline().
+-spec parse_option(string(), string(), [string()], cmdline_config:config(),
+                   cmdline()) -> cmdline().
 parse_option(Name, Arg0, Args, Config, Cmdline) ->
-  case find_option(Name, Config) of
+  case cmdline_config:find_option(Name, Config) of
     {ok, {flag, Short, Long, _}} ->
       Cmdline2 = add_flag(Short, Long, Cmdline),
       parse_options(Arg0, Args, Config, Cmdline2);
@@ -93,10 +79,10 @@ parse_option(Name, Arg0, Args, Config, Cmdline) ->
       throw({error, {unknown_option, Name}})
   end.
 
--spec parse_arguments(pos_integer(), string(), [string()], config(),
-                      cmdline()) -> cmdline().
+-spec parse_arguments(pos_integer(), string(), [string()],
+                      cmdline_config:config(), cmdline()) -> cmdline().
 parse_arguments(N, Arg0, [Value | Args], Config, Cmdline) ->
-  case find_argument(N, Config) of
+  case cmdline_config:find_argument(N, Config) of
     {ok, {argument, Name, _}} ->
       Cmdline2 = add_argument(Name, Value, Cmdline),
       parse_arguments(N+1, Arg0, Args, Config, Cmdline2);
@@ -106,14 +92,14 @@ parse_arguments(N, Arg0, [Value | Args], Config, Cmdline) ->
 parse_arguments(_N, _Arg0, [], Config, Cmdline) ->
   finalize(Cmdline, Config).
 
--spec finalize(cmdline(), config()) -> cmdline().
+-spec finalize(cmdline(), cmdline_config:config()) -> cmdline().
 finalize(Cmdline, Config) ->
   check_arguments(Cmdline, Config),
   Cmdline.
 
--spec check_arguments(cmdline(), config()) -> ok.
+-spec check_arguments(cmdline(), cmdline_config:config()) -> ok.
 check_arguments(#{arguments := Arguments}, Config) ->
-  case arguments(Config) of
+  case cmdline_config:arguments(Config) of
     ArgumentEntries when length(ArgumentEntries) > map_size(Arguments) ->
       throw({error, missing_arguments});
     _ ->
@@ -136,19 +122,7 @@ get_option(Name, #{options := Options}, Default) ->
 get_argument(Name, #{arguments := Arguments}) ->
   maps:get(Name, Arguments).
 
--spec find_option(string(), config()) -> {ok, config_entry()} | error.
-find_option(_, []) ->
-  error;
-find_option(Name, [Entry = {flag, Short, Long, _} | _]) when
-    Name =:= Short; Name =:= Long ->
-  {ok, Entry};
-find_option(Name, [Entry = {option, Short, Long, _, _, _} | _]) when
-    Name =:= Short; Name =:= Long ->
-  {ok, Entry};
-find_option(Name, [_ | Config]) ->
-  find_option(Name, Config).
-
--spec add_default_options(cmdline(), config()) -> cmdline().
+-spec add_default_options(cmdline(), cmdline_config:config()) -> cmdline().
 add_default_options(Cmdline, []) ->
   Cmdline;
 add_default_options(Cmdline,
@@ -186,41 +160,6 @@ maybe_add_option(undefined, _, Cmdline) ->
   Cmdline;
 maybe_add_option(Name, Value, Cmdline = #{options := Options}) ->
   Cmdline#{options => Options#{Name => Value}}.
-
--spec find_argument(pos_integer(), config()) -> {ok, config_entry()} | error.
-find_argument(N, Config) ->
-  case arguments(Config) of
-    Arguments when length(Arguments) >= N ->
-      {ok, lists:nth(N, Arguments)};
-    _ ->
-      error
-  end.
-
--spec arguments(config()) -> config().
-arguments(Config) ->
-  arguments(Config, []).
-
--spec arguments(config(), [config_entry()]) -> config().
-arguments([], Acc) ->
-  lists:reverse(Acc);
-arguments([Entry = {argument, _, _} | Config], Acc) ->
-  arguments(Config, [Entry | Acc]);
-arguments([_ | Config], Acc) ->
-  arguments(Config, Acc).
-
--spec maybe_add_help_flag(config()) -> config().
-maybe_add_help_flag(Config) ->
-  F = fun
-        ({flag, _, "help", _}) -> true;
-        (_) -> false
-      end,
-  case lists:search(F, Config) of
-    {value, _} ->
-      Config;
-    false ->
-      Option = {flag, "h", "help", "print help and exit"},
-      [Option | Config]
-  end.
 
 -spec format_error(error()) -> string().
 format_error(truncated_short_option) ->
