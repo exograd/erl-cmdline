@@ -51,10 +51,8 @@ parse(Arg0, Args, Config0) ->
 
 -spec parse_options(string(), [string()], cmdline_config:config(),
                     cmdline()) -> cmdline().
-parse_options(_Arg0, [], Config, Cmdline) ->
-  finalize(Cmdline, Config);
 parse_options(Arg0, ["--" | Args], Config, Cmdline) ->
-  parse_arguments(1, Arg0, Args, Config, Cmdline);
+  parse_arguments(Arg0, Args, Config, Cmdline);
 parse_options(Arg0, [[$- | [$- | Name]] | Args], Config, Cmdline) ->
   parse_option(Name, Arg0, Args, Config, Cmdline);
 parse_options(_Arg0, ["-" | _Args], _Config, _Cmdline) ->
@@ -62,7 +60,7 @@ parse_options(_Arg0, ["-" | _Args], _Config, _Cmdline) ->
 parse_options(Arg0, [[$- | Name] | Args], Config, Cmdline) ->
   parse_option(Name, Arg0, Args, Config, Cmdline);
 parse_options(Arg0, Args, Config, Cmdline) ->
-  parse_arguments(1, Arg0, Args, Config, Cmdline).
+  parse_arguments(Arg0, Args, Config, Cmdline).
 
 -spec parse_option(string(), string(), [string()], cmdline_config:config(),
                    cmdline()) -> cmdline().
@@ -83,31 +81,23 @@ parse_option(Name, Arg0, Args, Config, Cmdline) ->
       throw({error, {unknown_option, Name}})
   end.
 
--spec parse_arguments(pos_integer(), string(), [string()],
+-spec parse_arguments(string(), [string()],
                       cmdline_config:config(), cmdline()) -> cmdline().
-parse_arguments(N, Arg0, [Value | Args], Config, Cmdline) ->
-  case cmdline_config:find_argument(N, Config) of
-    {ok, {argument, Name, _}} ->
-      Cmdline2 = add_argument(Name, Value, Cmdline),
-      parse_arguments(N+1, Arg0, Args, Config, Cmdline2);
-    error ->
-      throw({error, unhandled_arguments})
-  end;
-parse_arguments(_N, _Arg0, [], Config, Cmdline) ->
-  finalize(Cmdline, Config).
-
--spec finalize(cmdline(), cmdline_config:config()) -> cmdline().
-finalize(Cmdline, Config) ->
-  check_arguments(Cmdline, Config),
-  Cmdline.
-
--spec check_arguments(cmdline(), cmdline_config:config()) -> ok.
-check_arguments(#{arguments := Arguments}, Config) ->
-  case cmdline_config:arguments(Config) of
-    ArgumentEntries when length(ArgumentEntries) > map_size(Arguments) ->
-      throw({error, missing_arguments});
+parse_arguments(_Arg0, Args, Config, Cmdline) ->
+  ArgumentConfigs = cmdline_config:get_arguments(Config),
+  NbArgumentConfigs = length(ArgumentConfigs),
+  length(Args) < NbArgumentConfigs andalso
+    throw({error, missing_arguments}),
+  {Args1, Args2} = lists:split(NbArgumentConfigs, Args),
+  Arguments = lists:foldl(fun ({Value, {argument, Name, _}}, Acc) ->
+                              Acc#{Name => Value}
+                          end, #{}, lists:zip(Args1, ArgumentConfigs)),
+  Cmdline2 = Cmdline#{arguments => Arguments},
+  case Args2 of
+    [] ->
+      Cmdline2;
     _ ->
-      ok
+      throw({error, unhandled_arguments})
   end.
 
 -spec has_option(string(), cmdline()) -> boolean().
@@ -154,10 +144,6 @@ add_option(Short, Long, Value, Cmdline) ->
   Cmdline2 = maybe_add_option(Short, Value, Cmdline),
   Cmdline3 = maybe_add_option(Long, Value, Cmdline2),
   Cmdline3.
-
--spec add_argument(string(), string(), cmdline()) -> cmdline().
-add_argument(Name, Value, Cmdline = #{arguments := Arguments}) ->
-  Cmdline#{arguments => Arguments#{Name => Value}}.
 
 -spec maybe_add_option(optional_string(), string(), cmdline()) -> cmdline().
 maybe_add_option(undefined, _, Cmdline) ->

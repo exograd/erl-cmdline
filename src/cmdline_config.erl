@@ -14,7 +14,7 @@
 
 -module(cmdline_config).
 
--export([find_option/2, find_argument/2, arguments/1,
+-export([find_option/2, get_arguments/1,
          maybe_add_help_flag/1]).
 
 -export_type([config/0, entry/0,
@@ -34,6 +34,9 @@
          Description :: string()}
       | {argument,
          Name :: string(),
+         Description :: string()}
+      | {trailing_arguments,
+         Name :: string(),
          Description :: string()}.
 
 -spec find_option(string(), config()) -> {ok, entry()} | error.
@@ -48,26 +51,17 @@ find_option(Name, [Entry = {option, Short, Long, _, _, _} | _]) when
 find_option(Name, [_ | Config]) ->
   find_option(Name, Config).
 
--spec find_argument(pos_integer(), config()) -> {ok, entry()} | error.
-find_argument(N, Config) ->
-  case arguments(Config) of
-    Arguments when length(Arguments) >= N ->
-      {ok, lists:nth(N, Arguments)};
-    _ ->
-      error
-  end.
+-spec get_arguments(config()) -> config().
+get_arguments(Config) ->
+  get_arguments(Config, []).
 
--spec arguments(config()) -> config().
-arguments(Config) ->
-  arguments(Config, []).
-
--spec arguments(config(), [entry()]) -> config().
-arguments([], Acc) ->
+-spec get_arguments(config(), [entry()]) -> config().
+get_arguments([], Acc) ->
   lists:reverse(Acc);
-arguments([Entry = {argument, _, _} | Config], Acc) ->
-  arguments(Config, [Entry | Acc]);
-arguments([_ | Config], Acc) ->
-  arguments(Config, Acc).
+get_arguments([Entry = {argument, _, _} | Config], Acc) ->
+  get_arguments(Config, [Entry | Acc]);
+get_arguments([_ | Config], Acc) ->
+  get_arguments(Config, Acc).
 
 -spec maybe_add_help_flag(config()) -> config().
 maybe_add_help_flag(Config) ->
