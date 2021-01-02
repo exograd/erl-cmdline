@@ -82,32 +82,32 @@ parse_test_() ->
    ?_assertNot(cmdline:has_option("b_opt", C)),
    ?_assert(cmdline:has_option("c", C)),
    ?_assert(cmdline:has_option("c_opt", C)),
-   ?_assertEqual("x_default", cmdline:get_option("x", C)),
-   ?_assertEqual("1", cmdline:get_option("y_opt", C)),
-   ?_assertEqual("2", cmdline:get_option("z", C)),
-   ?_assertEqual("2", cmdline:get_option("z_opt", C)),
-   ?_assertEqual("foo", cmdline:get_argument("arg1", C)),
-   ?_assertEqual("bar", cmdline:get_argument("arg2", C))].
+   ?_assertEqual("x_default", cmdline:option("x", C)),
+   ?_assertEqual("1", cmdline:option("y_opt", C)),
+   ?_assertEqual("2", cmdline:option("z", C)),
+   ?_assertEqual("2", cmdline:option("z_opt", C)),
+   ?_assertEqual("foo", cmdline:argument("arg1", C)),
+   ?_assertEqual("bar", cmdline:argument("arg2", C))].
 
 parse_separator_test_() ->
   Args = ["--", "-a", "--unknown"],
   {ok, C} = cmdline:parse("test", Args, full_config()),
   [?_assertNot(cmdline:has_option("a", C)),
-   ?_assertEqual("-a", cmdline:get_argument("arg1", C)),
-   ?_assertEqual("--unknown", cmdline:get_argument("arg2", C))].
+   ?_assertEqual("-a", cmdline:argument("arg1", C)),
+   ?_assertEqual("--unknown", cmdline:argument("arg2", C))].
 
 parse_separator_without_arguments_test_() ->
   Args = ["-a", "-x", "1", "--"],
   {ok, C} = cmdline:parse("test", Args, option_config()),
   [?_assert(cmdline:has_option("a", C)),
    ?_assert(cmdline:has_option("x", C)),
-   ?_assertEqual("1", cmdline:get_option("x", C))].
+   ?_assertEqual("1", cmdline:option("x", C))].
 
 parse_only_trailing_arguments_test_() ->
   Config = [{trailing_arguments, "args", ""} | option_config()],
   Parse = fun (Args) ->
               {ok, C} = cmdline:parse("test", Args, Config),
-              cmdline:get_trailing_arguments(C)
+              cmdline:trailing_arguments(C)
           end,
   [?_assertEqual([], Parse([])),
    ?_assertEqual([], Parse(["-a", "-x", "1"])),
@@ -119,7 +119,7 @@ parse_trailing_arguments_test_() ->
   Config = [{trailing_arguments, "args", ""} | full_config()],
   Parse = fun (Args) ->
               {ok, C} = cmdline:parse("test", Args, Config),
-              cmdline:get_trailing_arguments(C)
+              cmdline:trailing_arguments(C)
           end,
   [?_assertEqual([], Parse(["a1", "a2"])),
    ?_assertEqual(["foo"], Parse(["a1", "a2", "foo"])),
@@ -137,7 +137,7 @@ parse_only_commands_test_() ->
   Config = option_config() ++ command_config(),
   Parse = fun (Args) ->
               {ok, C} = cmdline:parse("test", Args, Config),
-              {cmdline:get_command(C), cmdline:get_command_arguments(C)}
+              {cmdline:command(C), cmdline:command_arguments(C)}
           end,
   [?_assertEqual({"help", []},
                  Parse(["help"])),
@@ -154,7 +154,7 @@ parse_commands_test_() ->
   Config = full_config() ++ command_config(),
   Parse = fun (Args) ->
               {ok, C} = cmdline:parse("test", Args, Config),
-              {cmdline:get_command(C), cmdline:get_command_arguments(C)}
+              {cmdline:command(C), cmdline:command_arguments(C)}
           end,
   [?_assertEqual({"help", []},
                  Parse(["a1", "a2", "help"])),

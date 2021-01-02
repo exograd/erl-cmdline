@@ -15,8 +15,8 @@
 -module(cmdline).
 
 -export([parse/3,
-         has_option/2, get_option/2, get_option/3, get_argument/2,
-         get_trailing_arguments/1, get_command/1, get_command_arguments/1,
+         has_option/2, option/2, option/3, argument/2,
+         trailing_arguments/1, command/1, command_arguments/1,
          format_error/1]).
 
 -export_type([cmdline/0, options/0, arguments/0,
@@ -42,10 +42,8 @@
 
 -spec parse(string(), [string()], cmdline_config:config()) ->
         {ok, cmdline()} | {error, error()}.
-parse(Arg0, Args, Config0) ->
-  Config = cmdline_config:maybe_add_help_flag(Config0),
-  Cmdline0 = #{options => #{},
-               arguments => #{}},
+parse(Arg0, Args, Config) ->
+  Cmdline0 = #{options => #{}, arguments => #{}},
   Cmdline = add_default_options(Cmdline0, Config),
   try
     {ok, parse_options(Arg0, Args, Config, Cmdline)}
@@ -75,13 +73,13 @@ parse_option(Name, Arg0, Args, Config, Cmdline) ->
       Cmdline2 = add_flag(Short, Long, Cmdline),
       parse_options(Arg0, Args, Config, Cmdline2);
     {ok, {option, Short, Long, _, _, _}} ->
-        case Args of
-          [] ->
-            throw({error, {missing_option_value, Name}});
-          [Value | Args2] ->
-            Cmdline2 = add_option(Short, Long, Value, Cmdline),
-            parse_options(Arg0, Args2, Config, Cmdline2)
-        end;
+      case Args of
+        [] ->
+          throw({error, {missing_option_value, Name}});
+        [Value | Args2] ->
+          Cmdline2 = add_option(Short, Long, Value, Cmdline),
+          parse_options(Arg0, Args2, Config, Cmdline2)
+      end;
     error ->
       throw({error, {unknown_option, Name}})
   end.
@@ -89,7 +87,7 @@ parse_option(Name, Arg0, Args, Config, Cmdline) ->
 -spec parse_arguments(string(), [string()], cmdline_config:config(),
                       cmdline()) -> cmdline().
 parse_arguments(Arg0, Args, Config, Cmdline) ->
-  ArgumentConfigs = cmdline_config:get_arguments(Config),
+  ArgumentConfigs = cmdline_config:arguments(Config),
   NbArgumentConfigs = length(ArgumentConfigs),
   length(Args) < NbArgumentConfigs andalso
     throw({error, missing_arguments}),
@@ -113,7 +111,7 @@ parse_trailing_arguments(Arg0, Args, Config, Cmdline) ->
 -spec parse_commands(string(), [string()], cmdline_config:config(),
                      cmdline()) -> cmdline().
 parse_commands(_Arg0, Args, Config, Cmdline) ->
-  case cmdline_config:get_commands(Config) of
+  case cmdline_config:commands(Config) of
     [] ->
       Args /= [] andalso throw({error, unhandled_arguments}),
       Cmdline;
@@ -135,28 +133,28 @@ parse_commands(_Arg0, Args, Config, Cmdline) ->
 has_option(Name, #{options := Options}) ->
   maps:is_key(Name, Options).
 
--spec get_option(string(), cmdline()) -> string().
-get_option(Name, Cmdline) ->
-  get_option(Name, Cmdline, undefined).
+-spec option(string(), cmdline()) -> string().
+option(Name, Cmdline) ->
+  option(Name, Cmdline, undefined).
 
--spec get_option(string(), cmdline(), optional_string()) -> string().
-get_option(Name, #{options := Options}, Default) ->
+-spec option(string(), cmdline(), optional_string()) -> string().
+option(Name, #{options := Options}, Default) ->
   maps:get(Name, Options, Default).
 
--spec get_argument(string(), cmdline()) -> string().
-get_argument(Name, #{arguments := Arguments}) ->
+-spec argument(string(), cmdline()) -> string().
+argument(Name, #{arguments := Arguments}) ->
   maps:get(Name, Arguments).
 
--spec get_trailing_arguments(cmdline()) -> string().
-get_trailing_arguments(Cmdline) ->
+-spec trailing_arguments(cmdline()) -> string().
+trailing_arguments(Cmdline) ->
   maps:get(trailing_arguments, Cmdline, []).
 
--spec get_command(cmdline()) -> optional_string().
-get_command(Cmdline) ->
+-spec command(cmdline()) -> optional_string().
+command(Cmdline) ->
   maps:get(command, Cmdline, undefined).
 
--spec get_command_arguments(cmdline()) -> optional_string().
-get_command_arguments(Cmdline) ->
+-spec command_arguments(cmdline()) -> optional_string().
+command_arguments(Cmdline) ->
   maps:get(command_arguments, Cmdline, []).
 
 -spec add_default_options(cmdline(), cmdline_config:config()) -> cmdline().

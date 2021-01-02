@@ -14,9 +14,7 @@
 
 -module(cmdline_config).
 
--export([find_option/2, get_arguments/1, find_trailing_arguments/1,
-         get_commands/1,
-         maybe_add_help_flag/1]).
+-export([find_option/2, arguments/1, find_trailing_arguments/1, commands/1]).
 
 -export_type([config/0, entry/0,
               optional_string/0]).
@@ -55,17 +53,17 @@ find_option(Name, [Entry = {option, Short, Long, _, _, _} | _]) when
 find_option(Name, [_ | Config]) ->
   find_option(Name, Config).
 
--spec get_arguments(config()) -> [entry()].
-get_arguments(Config) ->
-  get_arguments(Config, []).
+-spec arguments(config()) -> [entry()].
+arguments(Config) ->
+  arguments(Config, []).
 
--spec get_arguments(config(), [entry()]) -> [entry()].
-get_arguments([], Acc) ->
+-spec arguments(config(), [entry()]) -> [entry()].
+arguments([], Acc) ->
   lists:reverse(Acc);
-get_arguments([Entry = {argument, _, _} | Config], Acc) ->
-  get_arguments(Config, [Entry | Acc]);
-get_arguments([_ | Config], Acc) ->
-  get_arguments(Config, Acc).
+arguments([Entry = {argument, _, _} | Config], Acc) ->
+  arguments(Config, [Entry | Acc]);
+arguments([_ | Config], Acc) ->
+  arguments(Config, Acc).
 
 -spec find_trailing_arguments(config()) -> {ok, entry()} | error.
 find_trailing_arguments([]) ->
@@ -75,28 +73,14 @@ find_trailing_arguments([Entry = {trailing_arguments, _, _} | _]) ->
 find_trailing_arguments([_ | Config]) ->
   find_trailing_arguments(Config).
 
--spec get_commands(config()) -> [entry()].
-get_commands(Config) ->
-  get_commands(Config, []).
+-spec commands(config()) -> [entry()].
+commands(Config) ->
+  commands(Config, []).
 
--spec get_commands(config(), [entry()]) -> [entry()].
-get_commands([], Acc) ->
+-spec commands(config(), [entry()]) -> [entry()].
+commands([], Acc) ->
   lists:reverse(Acc);
-get_commands([Entry = {command, _, _} | Config], Acc) ->
-  get_commands(Config, [Entry | Acc]);
-get_commands([_ | Config], Acc) ->
-  get_commands(Config, Acc).
-
--spec maybe_add_help_flag(config()) -> config().
-maybe_add_help_flag(Config) ->
-  F = fun
-        ({flag, _, "help", _}) -> true;
-        (_) -> false
-      end,
-  case lists:search(F, Config) of
-    {value, _} ->
-      Config;
-    false ->
-      Option = {flag, "h", "help", "print help and exit"},
-      [Option | Config]
-  end.
+commands([Entry = {command, _, _} | Config], Acc) ->
+  commands(Config, [Entry | Acc]);
+commands([_ | Config], Acc) ->
+  commands(Config, Acc).
