@@ -14,10 +14,12 @@
 
 -module(cmdline_config).
 
--export([find_option/2, arguments/1, find_trailing_arguments/1, commands/1]).
+-export([validate/1,
+         find_option/2, arguments/1, find_trailing_arguments/1, commands/1]).
 
--export_type([config/0, entry/0,
-              optional_string/0]).
+-export_type([optional_string/0,
+              config/0, entry/0,
+              validation_error/0]).
 
 -type optional_string() :: string() | undefined.
 
@@ -40,6 +42,44 @@
       | {command,
          Name :: string(),
          Description :: string()}.
+
+-type validation_error() :: {invalid_entry, term()}
+                          | trailing_arguments_and_commands.
+
+-spec validate(config()) -> ok | {error, validation_error()}.
+validate(Config) ->
+  try
+    lists:map(fun validate_entry/1, Config),
+    validate_extra_arguments(Config),
+    ok
+  catch
+    throw:{error, Reason} ->
+      {error, Reason}
+  end.
+
+-spec validate_extra_arguments(config()) -> ok.
+validate_extra_arguments(Config) ->
+  %% We cannot have both trailing arguments (which by definition consume all
+  %% arguments left) and a command.
+  HasTrailingArgs = lists:keymember(trailing_arguments, 1, Config),
+  HasCommands = lists:keymember(command, 1, Config),
+  (HasTrailingArgs and HasCommands) andalso
+    throw({error, trailing_arguments_and_commands}),
+  ok.
+
+-spec validate_entry(entry()) -> ok.
+validate_entry({flag, _, _, _}) ->
+  ok;
+validate_entry({option, _, _, _, _, _}) ->
+  ok;
+validate_entry({argument, _, _}) ->
+  ok;
+validate_entry({trailing_arguments, _, _}) ->
+  ok;
+validate_entry({command, _, _}) ->
+  ok;
+validate_entry(Entry) ->
+  throw({error, {invalid_entry, Entry}}).
 
 -spec find_option(string(), config()) -> {ok, entry()} | error.
 find_option(_, []) ->

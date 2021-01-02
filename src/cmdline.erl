@@ -43,13 +43,18 @@
 -spec parse(string(), [string()], cmdline_config:config()) ->
         {ok, cmdline()} | {error, error()}.
 parse(Arg0, Args, Config) ->
-  Cmdline0 = #{options => #{}, arguments => #{}},
-  Cmdline = add_default_options(Cmdline0, Config),
-  try
-    {ok, parse_options(Arg0, Args, Config, Cmdline)}
-  catch
-    throw:{error, Reason} ->
-      {error, Reason}
+  case cmdline_config:validate(Config) of
+    ok ->
+      Cmdline0 = #{options => #{}, arguments => #{}},
+      Cmdline = add_default_options(Cmdline0, Config),
+      try
+        {ok, parse_options(Arg0, Args, Config, Cmdline)}
+      catch
+        throw:{error, Reason} ->
+          {error, Reason}
+      end;
+    {error, Reason} ->
+      error({invalid_config, Reason})
   end.
 
 -spec parse_options(string(), [string()], cmdline_config:config(),
