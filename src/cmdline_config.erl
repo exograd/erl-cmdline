@@ -95,32 +95,17 @@ find_option(Name, [_ | Config]) ->
 
 -spec arguments(config()) -> [entry()].
 arguments(Config) ->
-  arguments(Config, []).
-
--spec arguments(config(), [entry()]) -> [entry()].
-arguments([], Acc) ->
-  lists:reverse(Acc);
-arguments([Entry = {argument, _, _} | Config], Acc) ->
-  arguments(Config, [Entry | Acc]);
-arguments([_ | Config], Acc) ->
-  arguments(Config, Acc).
+  lists:filter(fun (E) -> element(1, E) =:= argument end, Config).
 
 -spec find_trailing_arguments(config()) -> {ok, entry()} | error.
-find_trailing_arguments([]) ->
-  error;
-find_trailing_arguments([Entry = {trailing_arguments, _, _} | _]) ->
-  {ok, Entry};
-find_trailing_arguments([_ | Config]) ->
-  find_trailing_arguments(Config).
+find_trailing_arguments(Config) ->
+  case lists:keyfind(trailing_arguments, 1, Config) of
+    false ->
+      error;
+    Entry ->
+      {ok, Entry}
+  end.
 
 -spec commands(config()) -> [entry()].
 commands(Config) ->
-  commands(Config, []).
-
--spec commands(config(), [entry()]) -> [entry()].
-commands([], Acc) ->
-  lists:reverse(Acc);
-commands([Entry = {command, _, _} | Config], Acc) ->
-  commands(Config, [Entry | Acc]);
-commands([_ | Config], Acc) ->
-  commands(Config, Acc).
+  lists:filter(fun (E) -> element(1, E) =:= command end, Config).
