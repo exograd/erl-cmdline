@@ -16,7 +16,7 @@
 
 -export([parse/3,
          has_option/2, get_option/2, get_option/3, get_argument/2,
-         get_trailing_arguments/1,
+         get_trailing_arguments/1, get_command/1, get_command_arguments/1,
          format_error/1]).
 
 -export_type([cmdline/0, options/0, arguments/0,
@@ -24,7 +24,9 @@
 
 -type cmdline() :: #{options := options(),
                      arguments := arguments(),
-                     trailing_arguments => [string()]}.
+                     trailing_arguments => [string()],
+                     command => string(),
+                     command_arguments => [string()]}.
 
 -type options() :: #{string() := string() | boolean()}.
 -type arguments() :: #{string() := string()}.
@@ -33,7 +35,8 @@
                | {unknown_option, string()}
                | {missing_option_value, string()}
                | missing_arguments
-               | unhandled_arguments.
+               | unhandled_arguments
+               | {unknown_command, string()}.
 
 -type optional_string() :: string() | undefined.
 
@@ -99,16 +102,32 @@ parse_arguments(Arg0, Args, Config, Cmdline) ->
 
 -spec parse_trailing_arguments(string(), [string()], cmdline_config:config(),
                                cmdline()) -> cmdline().
-parse_trailing_arguments(_Arg0, Args, Config, Cmdline) ->
+parse_trailing_arguments(Arg0, Args, Config, Cmdline) ->
   case cmdline_config:find_trailing_arguments(Config) of
     {ok, {trailing_arguments, _, _}} ->
       Cmdline#{trailing_arguments => Args};
     error ->
+      parse_commands(Arg0, Args, Config, Cmdline)
+  end.
+
+-spec parse_commands(string(), [string()], cmdline_config:config(),
+                     cmdline()) -> cmdline().
+parse_commands(_Arg0, Args, Config, Cmdline) ->
+  case cmdline_config:get_commands(Config) of
+    [] ->
+      Args /= [] andalso throw({error, unhandled_arguments}),
+      Cmdline;
+    Commands ->
       case Args of
-        [] ->
-          Cmdline;
+        [Name | Args2] ->
+          case lists:keyfind(Name, 2, Commands) of
+            false ->
+              throw({error, {unknown_command, Name}});
+            _ ->
+              Cmdline#{command => Name, command_arguments => Args2}
+          end;
         _ ->
-          throw({error, unhandled_arguments})
+          throw({error, missing_command})
       end
   end.
 
@@ -131,6 +150,14 @@ get_argument(Name, #{arguments := Arguments}) ->
 -spec get_trailing_arguments(cmdline()) -> string().
 get_trailing_arguments(Cmdline) ->
   maps:get(trailing_arguments, Cmdline, []).
+
+-spec get_command(cmdline()) -> optional_string().
+get_command(Cmdline) ->
+  maps:get(command, Cmdline, undefined).
+
+-spec get_command_arguments(cmdline()) -> optional_string().
+get_command_arguments(Cmdline) ->
+  maps:get(command_arguments, Cmdline, []).
 
 -spec add_default_options(cmdline(), cmdline_config:config()) -> cmdline().
 add_default_options(Cmdline, []) ->
@@ -177,4 +204,6 @@ format_error({missing_option_value, Name}) ->
 format_error(missing_arguments) ->
   "missing argument(s)";
 format_error(unhandled_arguments) ->
-  "unhandled argument(s)".
+  "unhandled argument(s)";
+format_error({unknown_command, Name}) ->
+  io_lib:format("unknown command \"~ts\"", [Name]).

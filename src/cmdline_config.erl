@@ -15,6 +15,7 @@
 -module(cmdline_config).
 
 -export([find_option/2, get_arguments/1, find_trailing_arguments/1,
+         get_commands/1,
          maybe_add_help_flag/1]).
 
 -export_type([config/0, entry/0,
@@ -36,6 +37,9 @@
          Name :: string(),
          Description :: string()}
       | {trailing_arguments,
+         Name :: string(),
+         Description :: string()}
+      | {command,
          Name :: string(),
          Description :: string()}.
 
@@ -70,6 +74,18 @@ find_trailing_arguments([Entry = {trailing_arguments, _, _} | _]) ->
   {ok, Entry};
 find_trailing_arguments([_ | Config]) ->
   find_trailing_arguments(Config).
+
+-spec get_commands(config()) -> [entry()].
+get_commands(Config) ->
+  get_commands(Config, []).
+
+-spec get_commands(config(), [entry()]) -> [entry()].
+get_commands([], Acc) ->
+  lists:reverse(Acc);
+get_commands([Entry = {command, _, _} | Config], Acc) ->
+  get_commands(Config, [Entry | Acc]);
+get_commands([_ | Config], Acc) ->
+  get_commands(Config, Acc).
 
 -spec maybe_add_help_flag(config()) -> config().
 maybe_add_help_flag(Config) ->

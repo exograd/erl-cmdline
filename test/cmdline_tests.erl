@@ -16,7 +16,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--export([option_config/0, argument_config/0, full_config/0]).
+-export([option_config/0, argument_config/0, command_config/0,
+         full_config/0]).
 
 option_config() ->
   [{flag, "a", undefined, ""},
@@ -29,6 +30,10 @@ option_config() ->
 argument_config() ->
   [{argument, "arg1", ""},
    {argument, "arg2", ""}].
+
+command_config() ->
+  [{command, "hello", ""},
+   {command, "help", ""}].
 
 full_config() ->
   option_config() ++ argument_config().
@@ -119,3 +124,46 @@ parse_trailing_arguments_test_() ->
   [?_assertEqual([], Parse(["a1", "a2"])),
    ?_assertEqual(["foo"], Parse(["a1", "a2", "foo"])),
    ?_assertEqual(["foo", "bar"], Parse(["a1", "a2", "foo", "bar"]))].
+
+parse_unknown_command_test_() ->
+  Config = option_config() ++ command_config(),
+  Parse = fun (Args) -> cmdline:parse("test", Args, Config) end,
+  [?_assertEqual({error, {unknown_command, "foo"}},
+                 Parse(["foo"])),
+   ?_assertEqual({error, {unknown_command, "foo"}},
+                 Parse(["-a", "foo"]))].
+
+parse_only_commands_test_() ->
+  Config = option_config() ++ command_config(),
+  Parse = fun (Args) ->
+              {ok, C} = cmdline:parse("test", Args, Config),
+              {cmdline:get_command(C), cmdline:get_command_arguments(C)}
+          end,
+  [?_assertEqual({"help", []},
+                 Parse(["help"])),
+   ?_assertEqual({"hello", ["bob"]},
+                 Parse(["hello", "bob"])),
+   ?_assertEqual({"hello", ["bob", "alice"]},
+                 Parse(["hello", "bob", "alice"])),
+   ?_assertEqual({"help", []},
+                 Parse(["-a", "-x", "1", "help"])),
+   ?_assertEqual({"hello", ["bob", "alice"]},
+                 Parse(["-a", "-x", "1", "hello", "bob", "alice"]))].
+
+parse_commands_test_() ->
+  Config = full_config() ++ command_config(),
+  Parse = fun (Args) ->
+              {ok, C} = cmdline:parse("test", Args, Config),
+              {cmdline:get_command(C), cmdline:get_command_arguments(C)}
+          end,
+  [?_assertEqual({"help", []},
+                 Parse(["a1", "a2", "help"])),
+   ?_assertEqual({"hello", ["bob"]},
+                 Parse(["a1", "a2", "hello", "bob"])),
+   ?_assertEqual({"hello", ["bob", "alice"]},
+                 Parse(["a1", "a2", "hello", "bob", "alice"])),
+   ?_assertEqual({"help", []},
+                 Parse(["-a", "-x", "1", "a1", "a2", "help"])),
+   ?_assertEqual({"hello", ["bob", "alice"]},
+                 Parse(["-a", "-x", "1", "a1", "a2",
+                        "hello", "bob", "alice"]))].
