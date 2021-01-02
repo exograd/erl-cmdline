@@ -27,7 +27,11 @@
 -type options() :: #{string() := string() | boolean()}.
 -type arguments() :: #{string() := string()}.
 
--type error() :: term().
+-type error() :: truncated_short_option
+               | {unknown_option, string()}
+               | {missing_option_value, string()}
+               | missing_arguments
+               | unhandled_arguments.
 
 -type optional_string() :: string() | undefined.
 
