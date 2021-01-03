@@ -48,7 +48,7 @@ format(Config, Arg0) ->
                    end,
   [FirstLine, OptionSection, ArgumentSection, CommandSection].
 
--spec format_argument_line([cmdline_config:entry()]) -> unicode:chardata().
+-spec format_argument_line([cmdline_config:argument()]) -> unicode:chardata().
 format_argument_line(Arguments) ->
   lists:map(fun ({argument, Name, _}) ->
                 [" <", Name, ">"]
@@ -64,12 +64,14 @@ maybe_format_trailing_argument_line(Config) ->
       []
   end.
 
--spec format_options([cmdline_config:entry()], non_neg_integer()) ->
+-spec format_options([cmdline_config:flag() | cmdline_config:option()],
+                     non_neg_integer()) ->
         unicode:chardata().
 format_options(Options, ColumnWidth) ->
   lists:map(fun (Option) -> format_option(Option, ColumnWidth) end, Options).
 
--spec format_option(cmdline_config:entry(), non_neg_integer()) ->
+-spec format_option(cmdline_config:flag() | cmdline_config:option(),
+                    non_neg_integer()) ->
         unicode:chardata().
 format_option(Entry = {flag, _, _, Description}, ColumnWidth) ->
   Label = format_option_label(Entry),
@@ -83,7 +85,8 @@ format_option(Entry = {option, _, _, _, Default, Description},
                 end,
   [string:pad(Label, ColumnWidth), "  ", Description, DefaultPart, $\n].
 
--spec format_option_label(cmdline_config:entry()) -> unicode:chardata().
+-spec format_option_label(cmdline_config:flag() | cmdline_config:option()) ->
+        unicode:chardata().
 format_option_label({flag, Short, Long, _}) ->
   format_option_names(Short, Long);
 format_option_label({option, Short, Long, Value, _, _}) ->
@@ -99,7 +102,7 @@ format_option_names(undefined, Long) ->
 format_option_names(Short, Long) ->
   ["-", Short, ", --", Long].
 
--spec format_arguments([cmdline_config:entry()], non_neg_integer()) ->
+-spec format_arguments([cmdline_config:argument()], non_neg_integer()) ->
         unicode:chardata().
 format_arguments(Arguments, ColumnWidth) ->
   lists:map(fun ({argument, Name, Description}) ->
@@ -117,7 +120,7 @@ maybe_format_trailing_arguments(Config, ColumnWidth) ->
       []
   end.
 
--spec format_commands([cmdline_config:entry()], non_neg_integer()) ->
+-spec format_commands([cmdline_config:command()], non_neg_integer()) ->
         unicode:chardata().
 format_commands(Commands, ColumnWidth) ->
   lists:map(fun ({command, Name, Description}) ->

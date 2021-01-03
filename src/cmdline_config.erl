@@ -21,29 +21,36 @@
 
 -export_type([optional_string/0,
               config/0, entry/0,
+              flag/0, option/0, argument/0, trailing_arguments/0, command/0,
               validation_error/0]).
 
 -type optional_string() :: string() | undefined.
 
 -type config() :: [entry()].
 
--type entry() ::
-        {flag,
-         Short :: optional_string(), Long :: optional_string(),
-         Description :: string()}
-      | {option,
-         Short :: optional_string(), Long :: optional_string(),
-         Value :: string(), Default :: optional_string(),
-         Description :: string()}
-      | {argument,
-         Name :: string(),
-         Description :: string()}
-      | {trailing_arguments,
-         Name :: string(),
-         Description :: string()}
-      | {command,
-         Name :: string(),
+-type entry() :: flag()
+               | option()
+               | argument()
+               | trailing_arguments()
+               | command().
+
+-type flag() ::
+        {flag, Short :: optional_string(), Long :: optional_string(),
          Description :: string()}.
+
+-type option() ::
+        {option, Short :: optional_string(), Long :: optional_string(),
+         Value :: string(), Default :: optional_string(),
+         Description :: string()}.
+
+-type argument() ::
+        {argument, Name :: string(), Description :: string()}.
+
+-type trailing_arguments() ::
+        {trailing_arguments, Name :: string(), Description :: string()}.
+
+-type command() ::
+        {command, Name :: string(), Description :: string()}.
 
 -type validation_error() :: {invalid_entry, term()}
                           | trailing_arguments_and_commands.
@@ -83,7 +90,7 @@ validate_entry({command, _, _}) ->
 validate_entry(Entry) ->
   throw({error, {invalid_entry, Entry}}).
 
--spec options(config()) -> [entry()].
+-spec options(config()) -> [flag() | option()].
 options(Config) ->
   lists:filter(fun
                  ({flag, _, _, _}) ->
@@ -94,7 +101,7 @@ options(Config) ->
                    false
                end, Config).
 
--spec find_option(string(), config()) -> {ok, entry()} | error.
+-spec find_option(string(), config()) -> {ok, flag() | option()} | error.
 find_option(_, []) ->
   error;
 find_option(Name, [Entry = {flag, Short, Long, _} | _]) when
@@ -106,13 +113,13 @@ find_option(Name, [Entry = {option, Short, Long, _, _, _} | _]) when
 find_option(Name, [_ | Config]) ->
   find_option(Name, Config).
 
--spec sort_options([entry()]) -> [entry()].
+-spec sort_options([flag() | option()]) -> [flag() | option()].
 sort_options(Options) ->
   lists:sort(fun (O1, O2) ->
                  option_sort_key(O1) =< option_sort_key(O2)
              end, Options).
 
--spec option_sort_key(entry()) -> term().
+-spec option_sort_key(flag() | option()) -> term().
 option_sort_key({flag, Short, _, _}) when is_list(Short) ->
   Short;
 option_sort_key({flag, undefined, Long, _}) when is_list(Long) ->
@@ -122,11 +129,11 @@ option_sort_key({option, Short, _, _, _, _}) when is_list(Short) ->
 option_sort_key({option, undefined, Long, _, _, _}) when is_list(Long) ->
   Long.
 
--spec arguments(config()) -> [entry()].
+-spec arguments(config()) -> [argument()].
 arguments(Config) ->
   lists:filter(fun (E) -> element(1, E) =:= argument end, Config).
 
--spec find_trailing_arguments(config()) -> {ok, entry()} | error.
+-spec find_trailing_arguments(config()) -> {ok, trailing_arguments()} | error.
 find_trailing_arguments(Config) ->
   case lists:keyfind(trailing_arguments, 1, Config) of
     false ->
@@ -135,10 +142,10 @@ find_trailing_arguments(Config) ->
       {ok, Entry}
   end.
 
--spec commands(config()) -> [entry()].
+-spec commands(config()) -> [command()].
 commands(Config) ->
   lists:filter(fun (E) -> element(1, E) =:= command end, Config).
 
--spec sort_commands([entry()]) -> [entry()].
+-spec sort_commands([command()]) -> [command()].
 sort_commands(Commands) ->
   lists:keysort(2, Commands).
