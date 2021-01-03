@@ -15,7 +15,7 @@
 -module(cmdline).
 
 -export([parse/3, parse/4, usage/1, usage/2,
-         has_option/2, option/2, option/3, argument/2,
+         is_option_set/2, option/2, option/3, argument/2,
          trailing_arguments/1, command/1, command_arguments/1,
          format_error/1]).
 
@@ -125,7 +125,7 @@ parse_option(Name, Args, Config, Cmdline) ->
 -spec maybe_parse_arguments([string()], cmdline_config:config(), cmdline()) ->
         cmdline().
 maybe_parse_arguments(Args, Config, Cmdline) ->
-  case handle_help(Cmdline) andalso has_option("help", Cmdline) of
+  case handle_help(Cmdline) andalso is_option_set("help", Cmdline) of
     true ->
       help(Cmdline);
     false ->
@@ -184,8 +184,8 @@ parse_commands(Args, Config, Cmdline) ->
       end
   end.
 
--spec has_option(string(), cmdline()) -> boolean().
-has_option(Name, #{options := Options}) ->
+-spec is_option_set(string(), cmdline()) -> boolean().
+is_option_set(Name, #{options := Options}) ->
   maps:is_key(Name, Options).
 
 -spec option(string(), cmdline()) -> string().
