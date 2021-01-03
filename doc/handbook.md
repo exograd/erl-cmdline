@@ -1,7 +1,7 @@
 % erl-pgc
 
 # Introduction
-The erl-cmdline project provides functions for command line handling.
+The erl-cmdline project provides functions for command line processing.
 
 # Usage
 ## Parsing
@@ -31,7 +31,7 @@ The following functions can be used to obtain information from a command line
 value returned from a parsing function:
 
 - `is_option_set/2`: indicates whether an option has been defined or not. Note
-  that options which have a default value are always defined even if it was
+  that options which have a default value are always defined even if they were
   not explicitely set in command line arguments.
 - `option/2`, `option/3` return the value associated with an option or `true`
   if the option is a flag. If the option was not set, the first function
@@ -44,7 +44,11 @@ value returned from a parsing function:
   in the list of command line arguments.
 
 ## Usage string
-**TODO**
+The `cmdline:usage/1` function can be used to obtain a human-readable usage
+string from a command line value returned by a parsing option.
+
+Note that using the `handle_help` parsing option will let parsing functions
+take care of usage display.
 
 # Configuration
 A configuration is a list of entries defining elements of the command line.
@@ -59,9 +63,9 @@ following tuple:
 
     {flag, ShortName, LongName, Description}
 
-- `ShortName`: a string containing a single character identifying the option
+- `ShortName`: a string containing a single character identifying the option,
   or `undefined`.
-- `LongName`: a string identifying the option or `undefined`.
+- `LongName`: a string identifying the option, or `undefined`.
 - `Value`: a string indicating the type of value to be passed to the option;
   it is only used for display in usage strings.
 - `Default`: a string containing the default value for the option, or
@@ -73,6 +77,10 @@ Options must have at least one short name or one long name.
 
 The behaviour of the application is undefined if a configuration contains
 multiple options with the same names.
+
+Options are set by using either the short name preceded by `-` or the long
+name preceded by `--`. If an option is set multiple times, the only value
+retained is the last one.
 
 ## Arguments
 Arguments are defined with the following tuple:
@@ -98,8 +106,6 @@ Trailing arguments are defined with the following tuple:
   only used for display in usage strings.
 
 ## Commands
-A command is called by passing its name after all options and arguments.
-
 Commands are defined with the following tuple:
 
     {command, Name, Description}
@@ -107,6 +113,10 @@ Commands are defined with the following tuple:
 - `Name`: a string identifying the command.
 - `Description` a string containing the description of the command; it is only
   used for display in usage strings.
+
+A command is called by passing its name after all options and arguments.
+
+Note that commands cannot be used if trailing arguments are defined.
 
 ## Parsing options
 The following options can be passed to parsing functions:

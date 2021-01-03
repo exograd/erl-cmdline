@@ -3,12 +3,12 @@ This repository contains an Erlang library providing functions to parse
 command line arguments.
 
 While similar to [getopt](https://github.com/jcomellas/getopt), erl-cmdline
-improves argument handling and add supports for commands.
+improves argument handling and add support for commands.
 
 # Example
-An escript demonstrating multiple use cases can be found at
-`example/options_and_arguments.erl`. Note that the `cmdline` application must
-be built before running it:
+An escript demonstrating multiple use cases can be found [in the `example`
+directory](example/options_and_arguments.erl). Note that the `cmdline`
+application must be built before running it:
 
 ```sh
     make build
