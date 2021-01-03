@@ -14,7 +14,7 @@
 
 -module(cmdline_config).
 
--export([validate/1,
+-export([validate/1, add_help/1,
          options/1, find_option/2, sort_options/1,
          arguments/1, find_trailing_arguments/1,
          commands/1, sort_commands/1]).
@@ -89,6 +89,18 @@ validate_entry({command, _, _}) ->
   ok;
 validate_entry(Entry) ->
   throw({error, {invalid_entry, Entry}}).
+
+-spec add_help(config()) -> config().
+add_help(Config) ->
+  HelpOption = {flag, "h", "help", "print help and exit"},
+  Config2 = [HelpOption | Config],
+  case commands(Config) of
+    [] ->
+      Config2;
+    _ ->
+      HelpCommand = {command, "help", "print help and exit"},
+      [HelpCommand | Config2]
+  end.
 
 -spec options(config()) -> [flag() | option()].
 options(Config) ->

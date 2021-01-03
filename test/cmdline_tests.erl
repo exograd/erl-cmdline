@@ -39,7 +39,7 @@ argument_config() ->
 
 command_config() ->
   [{command, "hello", "say hello"},
-   {command, "help", "print help"}].
+   {command, "bye", "say bye"}].
 
 full_config() ->
   option_config() ++ argument_config().
@@ -145,14 +145,14 @@ parse_only_commands_test_() ->
               {ok, C} = cmdline:parse("test", Args, Config),
               {cmdline:command(C), cmdline:command_arguments(C)}
           end,
-  [?_assertEqual({"help", []},
-                 Parse(["help"])),
+  [?_assertEqual({"bye", []},
+                 Parse(["bye"])),
    ?_assertEqual({"hello", ["bob"]},
                  Parse(["hello", "bob"])),
    ?_assertEqual({"hello", ["bob", "alice"]},
                  Parse(["hello", "bob", "alice"])),
-   ?_assertEqual({"help", []},
-                 Parse(["-a", "-x", "1", "help"])),
+   ?_assertEqual({"bye", []},
+                 Parse(["-a", "-x", "1", "bye"])),
    ?_assertEqual({"hello", ["bob", "alice"]},
                  Parse(["-a", "-x", "1", "hello", "bob", "alice"]))].
 
@@ -162,14 +162,14 @@ parse_commands_test_() ->
               {ok, C} = cmdline:parse("test", Args, Config),
               {cmdline:command(C), cmdline:command_arguments(C)}
           end,
-  [?_assertEqual({"help", []},
-                 Parse(["a1", "a2", "help"])),
+  [?_assertEqual({"bye", []},
+                 Parse(["a1", "a2", "bye"])),
    ?_assertEqual({"hello", ["bob"]},
                  Parse(["a1", "a2", "hello", "bob"])),
    ?_assertEqual({"hello", ["bob", "alice"]},
                  Parse(["a1", "a2", "hello", "bob", "alice"])),
-   ?_assertEqual({"help", []},
-                 Parse(["-a", "-x", "1", "a1", "a2", "help"])),
+   ?_assertEqual({"bye", []},
+                 Parse(["-a", "-x", "1", "a1", "a2", "bye"])),
    ?_assertEqual({"hello", ["bob", "alice"]},
                  Parse(["-a", "-x", "1", "a1", "a2",
                         "hello", "bob", "alice"]))].

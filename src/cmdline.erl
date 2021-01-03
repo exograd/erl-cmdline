@@ -20,9 +20,10 @@
          format_error/1]).
 
 -export_type([cmdline/0, options/0, arguments/0,
-              error/0]).
+              parse_options/0, error/0]).
 
 -type cmdline() :: #{config := cmdline_config:config(),
+                     parse_options := parse_options(),
                      arg0 := string(),
                      options := options(),
                      arguments := arguments(),
@@ -33,7 +34,7 @@
 -type options() :: #{string() := string() | boolean()}.
 -type arguments() :: #{string() := string()}.
 
--type parse_options() :: #{}.
+-type parse_options() :: #{handle_help => boolean()}.
 
 -type error() :: truncated_short_option
                | {unknown_option, string()}
@@ -51,10 +52,12 @@ parse(Arg0, Args, Config) ->
 
 -spec parse(string(), [string()], cmdline_config:config(), parse_options()) ->
         {ok, cmdline()} | {error, error()}.
-parse(Arg0, Args, Config, _Options) ->
+parse(Arg0, Args, Config0, Options) ->
+  Config = init_config(Config0, Options),
   case cmdline_config:validate(Config) of
     ok ->
       Cmdline0 = #{config => Config,
+                   parse_options => Options,
                    arg0 => Arg0,
                    options => #{},
                    arguments => #{}},
@@ -69,6 +72,16 @@ parse(Arg0, Args, Config, _Options) ->
       error({invalid_config, Reason})
   end.
 
+-spec init_config(cmdline_config:config(), parse_options()) ->
+        cmdline_config:config().
+init_config(Config0, Options) ->
+  case maps:get(handle_help, Options, false) of
+    true ->
+      cmdline_config:add_help(Config0);
+    false ->
+      Config0
+  end.
+
 -spec usage(cmdline()) -> unicode:chardata().
 usage(#{config := Config, arg0 := Arg0}) ->
   usage(Config, Arg0).
@@ -80,7 +93,7 @@ usage(Config, Arg0) ->
 -spec parse_options([string()], cmdline_config:config(),
                     cmdline()) -> cmdline().
 parse_options(["--" | Args], Config, Cmdline) ->
-  parse_arguments(Args, Config, Cmdline);
+  maybe_parse_arguments(Args, Config, Cmdline);
 parse_options([[$- | [$- | Name]] | Args], Config, Cmdline) ->
   parse_option(Name, Args, Config, Cmdline);
 parse_options(["-" | _Args], _Config, _Cmdline) ->
@@ -88,7 +101,7 @@ parse_options(["-" | _Args], _Config, _Cmdline) ->
 parse_options([[$- | Name] | Args], Config, Cmdline) ->
   parse_option(Name, Args, Config, Cmdline);
 parse_options(Args, Config, Cmdline) ->
-  parse_arguments(Args, Config, Cmdline).
+  maybe_parse_arguments(Args, Config, Cmdline).
 
 -spec parse_option(string(), [string()], cmdline_config:config(),
                    cmdline()) -> cmdline().
@@ -107,6 +120,16 @@ parse_option(Name, Args, Config, Cmdline) ->
       end;
     error ->
       throw({error, {unknown_option, Name}})
+  end.
+
+-spec maybe_parse_arguments([string()], cmdline_config:config(), cmdline()) ->
+        cmdline().
+maybe_parse_arguments(Args, Config, Cmdline) ->
+  case handle_help(Cmdline) andalso has_option("help", Cmdline) of
+    true ->
+      help(Cmdline);
+    false ->
+      parse_arguments(Args, Config, Cmdline)
   end.
 
 -spec parse_arguments([string()], cmdline_config:config(), cmdline()) ->
@@ -147,7 +170,14 @@ parse_commands(Args, Config, Cmdline) ->
             false ->
               throw({error, {unknown_command, Name}});
             _ ->
-              Cmdline#{command => Name, command_arguments => Args2}
+              Cmdline2 = Cmdline#{command => Name,
+                                  command_arguments => Args2},
+              case handle_help(Cmdline2) andalso Name == "help" of
+                true ->
+                  help(Cmdline2);
+                false ->
+                  Cmdline2
+              end
           end;
         _ ->
           throw({error, missing_command})
@@ -230,3 +260,12 @@ format_error(unhandled_arguments) ->
   "unhandled argument(s)";
 format_error({unknown_command, Name}) ->
   io_lib:format("unknown command \"~ts\"", [Name]).
+
+-spec handle_help(cmdline()) -> boolean().
+handle_help(#{parse_options := Options}) ->
+  maps:get(handle_help, Options, false).
+
+-spec help(cmdline()) -> no_return().
+help(Cmdline) ->
+  io:put_chars(standard_error, usage(Cmdline)),
+  erlang:halt(0).
