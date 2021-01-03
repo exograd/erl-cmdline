@@ -20,20 +20,26 @@
          full_config/0]).
 
 option_config() ->
-  [{flag, "a", undefined, ""},
-   {flag, undefined, "b_opt", ""},
-   {flag, "c", "c_opt", ""},
-   {option, "x", undefined, "value", "x_default", ""},
-   {option, undefined, "y_opt", "value", undefined, ""},
-   {option, "z", "z_opt", "value", undefined, ""}].
+  [{flag, "a", undefined,
+    "a short flag"},
+   {flag, undefined, "b_opt",
+    "a long flag"},
+   {flag, "c", "c_opt",
+    "a flag with both short and long names"},
+   {option, "x", undefined, "value", "x_default",
+    "an option with a default value"},
+   {option, undefined, "y_opt", "value", undefined,
+    "a long option"},
+   {option, "z", "z_opt", "value", undefined,
+    "an option with both short and long names"}].
 
 argument_config() ->
-  [{argument, "arg1", ""},
-   {argument, "arg2", ""}].
+  [{argument, "arg1", "the first argument"},
+   {argument, "arg2", "the second argument"}].
 
 command_config() ->
-  [{command, "hello", ""},
-   {command, "help", ""}].
+  [{command, "hello", "say hello"},
+   {command, "help", "print help"}].
 
 full_config() ->
   option_config() ++ argument_config().

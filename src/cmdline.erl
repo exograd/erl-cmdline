@@ -14,7 +14,7 @@
 
 -module(cmdline).
 
--export([parse/3,
+-export([parse/3, usage/1, usage/2,
          has_option/2, option/2, option/3, argument/2,
          trailing_arguments/1, command/1, command_arguments/1,
          format_error/1]).
@@ -22,7 +22,9 @@
 -export_type([cmdline/0, options/0, arguments/0,
               error/0]).
 
--type cmdline() :: #{options := options(),
+-type cmdline() :: #{config := cmdline_config:config(),
+                     arg0 := string(),
+                     options := options(),
                      arguments := arguments(),
                      trailing_arguments => [string()],
                      command => string(),
@@ -45,7 +47,10 @@
 parse(Arg0, Args, Config) ->
   case cmdline_config:validate(Config) of
     ok ->
-      Cmdline0 = #{options => #{}, arguments => #{}},
+      Cmdline0 = #{config => Config,
+                   arg0 => Arg0,
+                   options => #{},
+                   arguments => #{}},
       Cmdline = add_default_options(Cmdline0, Config),
       try
         {ok, parse_options(Arg0, Args, Config, Cmdline)}
@@ -56,6 +61,14 @@ parse(Arg0, Args, Config) ->
     {error, Reason} ->
       error({invalid_config, Reason})
   end.
+
+-spec usage(cmdline()) -> unicode:chardata().
+usage(#{config := Config, arg0 := Arg0}) ->
+  usage(Config, Arg0).
+
+-spec usage(cmdline_config:config(), Arg0 :: string()) -> unicode:chardata().
+usage(Config, Arg0) ->
+  cmdline_usage:format(Config, Arg0).
 
 -spec parse_options(string(), [string()], cmdline_config:config(),
                     cmdline()) -> cmdline().

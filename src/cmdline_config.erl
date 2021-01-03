@@ -15,7 +15,9 @@
 -module(cmdline_config).
 
 -export([validate/1,
-         find_option/2, arguments/1, find_trailing_arguments/1, commands/1]).
+         options/1, find_option/2, sort_options/1,
+         arguments/1, find_trailing_arguments/1,
+         commands/1, sort_commands/1]).
 
 -export_type([optional_string/0,
               config/0, entry/0,
@@ -81,6 +83,17 @@ validate_entry({command, _, _}) ->
 validate_entry(Entry) ->
   throw({error, {invalid_entry, Entry}}).
 
+-spec options(config()) -> [entry()].
+options(Config) ->
+  lists:filter(fun
+                 ({flag, _, _, _}) ->
+                   true;
+                 ({option, _, _, _, _, _}) ->
+                   true;
+                 (_) ->
+                   false
+               end, Config).
+
 -spec find_option(string(), config()) -> {ok, entry()} | error.
 find_option(_, []) ->
   error;
@@ -92,6 +105,22 @@ find_option(Name, [Entry = {option, Short, Long, _, _, _} | _]) when
   {ok, Entry};
 find_option(Name, [_ | Config]) ->
   find_option(Name, Config).
+
+-spec sort_options([entry()]) -> [entry()].
+sort_options(Options) ->
+  lists:sort(fun (O1, O2) ->
+                 option_sort_key(O1) =< option_sort_key(O2)
+             end, Options).
+
+-spec option_sort_key(entry()) -> term().
+option_sort_key({flag, Short, _, _}) when is_list(Short) ->
+  Short;
+option_sort_key({flag, undefined, Long, _}) when is_list(Long) ->
+  Long;
+option_sort_key({option, Short, _, _, _, _}) when is_list(Short) ->
+  Short;
+option_sort_key({option, undefined, Long, _, _, _}) when is_list(Long) ->
+  Long.
 
 -spec arguments(config()) -> [entry()].
 arguments(Config) ->
@@ -109,3 +138,7 @@ find_trailing_arguments(Config) ->
 -spec commands(config()) -> [entry()].
 commands(Config) ->
   lists:filter(fun (E) -> element(1, E) =:= command end, Config).
+
+-spec sort_commands([entry()]) -> [entry()].
+sort_commands(Commands) ->
+  lists:keysort(2, Commands).
