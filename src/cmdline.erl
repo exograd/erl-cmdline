@@ -14,7 +14,7 @@
 
 -module(cmdline).
 
--export([parse/3, usage/1, usage/2,
+-export([parse/3, parse/4, usage/1, usage/2,
          has_option/2, option/2, option/3, argument/2,
          trailing_arguments/1, command/1, command_arguments/1,
          format_error/1]).
@@ -33,6 +33,8 @@
 -type options() :: #{string() := string() | boolean()}.
 -type arguments() :: #{string() := string()}.
 
+-type parse_options() :: #{}.
+
 -type error() :: truncated_short_option
                | {unknown_option, string()}
                | {missing_option_value, string()}
@@ -45,6 +47,11 @@
 -spec parse(string(), [string()], cmdline_config:config()) ->
         {ok, cmdline()} | {error, error()}.
 parse(Arg0, Args, Config) ->
+  parse(Arg0, Args, Config, #{}).
+
+-spec parse(string(), [string()], cmdline_config:config(), parse_options()) ->
+        {ok, cmdline()} | {error, error()}.
+parse(Arg0, Args, Config, _Options) ->
   case cmdline_config:validate(Config) of
     ok ->
       Cmdline0 = #{config => Config,
