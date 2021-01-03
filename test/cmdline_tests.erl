@@ -173,3 +173,28 @@ parse_commands_test_() ->
    ?_assertEqual({"hello", ["bob", "alice"]},
                  Parse(["-a", "-x", "1", "a1", "a2",
                         "hello", "bob", "alice"]))].
+
+parse_short_circuit_options_test_() ->
+  Config = [{flag, "x", "x_opt", ""},
+            {option, "y", "y_opt", "value", undefined, ""},
+            {argument, "arg", ""}],
+  Parse = fun (Args, ShortCircuitOpts) ->
+              Options = #{short_circuit_options => ShortCircuitOpts},
+              cmdline:parse("test", Args, Config, Options)
+          end,
+  [?_assertMatch({error, missing_arguments},
+                 Parse([], [])),
+   ?_assertMatch({error, missing_arguments},
+                 Parse(["-x"], [])),
+   ?_assertMatch({ok, #{options := #{"x" := true}}},
+                 Parse(["-x"], ["x"])),
+   ?_assertMatch({error, missing_arguments},
+                 Parse(["-y", "1"], ["x"])),
+   ?_assertMatch({ok, #{options := #{"x" := true}}},
+                 Parse(["-x", "foo"], ["x"])),
+   ?_assertMatch({ok, #{options := #{"y" := "1"}}},
+                 Parse(["-y", "1"], ["x", "y"])),
+   ?_assertMatch({ok, #{options := #{"x" := true}}},
+                 Parse(["-x", "-y", "1"], ["x", "y"])),
+   ?_assertMatch({ok, #{options := #{"y" := "1"}}},
+                 Parse(["-y", "1", "-x"], ["x", "y"]))].

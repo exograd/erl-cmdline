@@ -20,11 +20,11 @@
          format_error/1]).
 
 -export_type([cmdline/0, options/0, arguments/0,
-              parse_options/0, error/0,
+              parsing_options/0, error/0,
               optional_string/0]).
 
 -type cmdline() :: #{config := cmdline_config:config(),
-                     parse_options := parse_options(),
+                     parsing_options := parsing_options(),
                      arg0 := string(),
                      options := options(),
                      arguments := arguments(),
@@ -35,7 +35,8 @@
 -type options() :: #{string() := string() | boolean()}.
 -type arguments() :: #{string() := string()}.
 
--type parse_options() :: #{handle_help => boolean()}.
+-type parsing_options() :: #{handle_help => boolean(),
+                             short_circuit_options => [string()]}.
 
 -type error() :: truncated_short_option
                | {unknown_option, string()}
@@ -51,20 +52,20 @@
 parse(Arg0, Args, Config) ->
   parse(Arg0, Args, Config, #{}).
 
--spec parse(string(), [string()], cmdline_config:config(), parse_options()) ->
+-spec parse(string(), [string()], cmdline_config:config(), parsing_options()) ->
         {ok, cmdline()} | {error, error()}.
 parse(Arg0, Args, Config0, Options) ->
   Config = init_config(Config0, Options),
   case cmdline_config:validate(Config) of
     ok ->
       Cmdline0 = #{config => Config,
-                   parse_options => Options,
+                   parsing_options => Options,
                    arg0 => Arg0,
                    options => #{},
                    arguments => #{}},
       Cmdline = add_default_options(Cmdline0, Config),
       try
-        {ok, parse_options(Args, Config, Cmdline)}
+        {ok, parsing_options(Args, Config, Cmdline)}
       catch
         throw:{error, Reason} ->
           {error, Reason}
@@ -73,7 +74,7 @@ parse(Arg0, Args, Config0, Options) ->
       error({invalid_config, Reason})
   end.
 
--spec init_config(cmdline_config:config(), parse_options()) ->
+-spec init_config(cmdline_config:config(), parsing_options()) ->
         cmdline_config:config().
 init_config(Config0, Options) ->
   case maps:get(handle_help, Options, false) of
@@ -91,17 +92,17 @@ usage(#{config := Config, arg0 := Arg0}) ->
 usage(Config, Arg0) ->
   cmdline_usage:format(Config, Arg0).
 
--spec parse_options([string()], cmdline_config:config(),
+-spec parsing_options([string()], cmdline_config:config(),
                     cmdline()) -> cmdline().
-parse_options(["--" | Args], Config, Cmdline) ->
+parsing_options(["--" | Args], Config, Cmdline) ->
   maybe_parse_arguments(Args, Config, Cmdline);
-parse_options([[$- | [$- | Name]] | Args], Config, Cmdline) ->
+parsing_options([[$- | [$- | Name]] | Args], Config, Cmdline) ->
   parse_option(Name, Args, Config, Cmdline);
-parse_options(["-" | _Args], _Config, _Cmdline) ->
+parsing_options(["-" | _Args], _Config, _Cmdline) ->
   throw({error, truncated_short_option});
-parse_options([[$- | Name] | Args], Config, Cmdline) ->
+parsing_options([[$- | Name] | Args], Config, Cmdline) ->
   parse_option(Name, Args, Config, Cmdline);
-parse_options(Args, Config, Cmdline) ->
+parsing_options(Args, Config, Cmdline) ->
   maybe_parse_arguments(Args, Config, Cmdline).
 
 -spec parse_option(string(), [string()], cmdline_config:config(),
@@ -110,14 +111,14 @@ parse_option(Name, Args, Config, Cmdline) ->
   case cmdline_config:find_option(Name, Config) of
     {ok, {flag, Short, Long, _}} ->
       Cmdline2 = add_flag(Short, Long, Cmdline),
-      parse_options(Args, Config, Cmdline2);
+      parsing_options(Args, Config, Cmdline2);
     {ok, {option, Short, Long, _, _, _}} ->
       case Args of
         [] ->
           throw({error, {missing_option_value, Name}});
         [Value | Args2] ->
           Cmdline2 = add_option(Short, Long, Value, Cmdline),
-          parse_options(Args2, Config, Cmdline2)
+          parsing_options(Args2, Config, Cmdline2)
       end;
     error ->
       throw({error, {unknown_option, Name}})
@@ -130,7 +131,12 @@ maybe_parse_arguments(Args, Config, Cmdline) ->
     true ->
       help(Cmdline);
     false ->
-      parse_arguments(Args, Config, Cmdline)
+      case short_circuit(Cmdline) of
+        true ->
+          Cmdline;
+        false ->
+          parse_arguments(Args, Config, Cmdline)
+      end
   end.
 
 -spec parse_arguments([string()], cmdline_config:config(), cmdline()) ->
@@ -183,6 +189,26 @@ parse_commands(Args, Config, Cmdline) ->
         _ ->
           throw({error, missing_command})
       end
+  end.
+
+-spec short_circuit(cmdline()) -> boolean().
+short_circuit(Cmdline = #{parsing_options := ParsingOptions}) ->
+  case maps:find(short_circuit_options, ParsingOptions) of
+    {ok, Options} ->
+      short_circuit(Options, Cmdline);
+    error ->
+      false
+  end.
+
+-spec short_circuit([string()], cmdline()) -> boolean().
+short_circuit([], _) ->
+  false;
+short_circuit([Option | Options], Cmdline) ->
+  case is_option_set(Option, Cmdline) of
+    true ->
+      true;
+    false ->
+      short_circuit(Options, Cmdline)
   end.
 
 -spec is_option_set(string(), cmdline()) -> boolean().
@@ -263,7 +289,7 @@ format_error({unknown_command, Name}) ->
   io_lib:format("unknown command \"~ts\"", [Name]).
 
 -spec handle_help(cmdline()) -> boolean().
-handle_help(#{parse_options := Options}) ->
+handle_help(#{parsing_options := Options}) ->
   maps:get(handle_help, Options, false).
 
 -spec help(cmdline()) -> no_return().
