@@ -20,7 +20,8 @@
          format_error/1]).
 
 -export_type([cmdline/0, options/0, arguments/0,
-              parse_options/0, error/0]).
+              parse_options/0, error/0,
+              optional_string/0]).
 
 -type cmdline() :: #{config := cmdline_config:config(),
                      parse_options := parse_options(),

@@ -92,8 +92,8 @@ format_option_label({flag, Short, Long, _}) ->
 format_option_label({option, Short, Long, Value, _, _}) ->
   [format_option_names(Short, Long), " <", Value, ">"].
 
--spec format_option_names(cmdline_config:optional_string(),
-                          cmdline_config:optional_string()) ->
+-spec format_option_names(cmdline:optional_string(),
+                          cmdline:optional_string()) ->
         unicode:chardata().
 format_option_names(Short, undefined) ->
   ["-", Short];

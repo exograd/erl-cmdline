@@ -19,12 +19,9 @@
          arguments/1, find_trailing_arguments/1,
          commands/1, sort_commands/1]).
 
--export_type([optional_string/0,
-              config/0, entry/0,
+-export_type([config/0, entry/0,
               flag/0, option/0, argument/0, trailing_arguments/0, command/0,
               validation_error/0]).
-
--type optional_string() :: string() | undefined.
 
 -type config() :: [entry()].
 
@@ -35,12 +32,14 @@
                | command().
 
 -type flag() ::
-        {flag, Short :: optional_string(), Long :: optional_string(),
+        {flag,
+         Short :: cmdline:optional_string(), Long :: cmdline:optional_string(),
          Description :: string()}.
 
 -type option() ::
-        {option, Short :: optional_string(), Long :: optional_string(),
-         Value :: string(), Default :: optional_string(),
+        {option,
+         Short :: cmdline:optional_string(), Long :: cmdline:optional_string(),
+         Value :: string(), Default :: cmdline:optional_string(),
          Description :: string()}.
 
 -type argument() ::
