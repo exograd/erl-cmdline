@@ -53,7 +53,7 @@ parse(Arg0, Args, Config) ->
                    arguments => #{}},
       Cmdline = add_default_options(Cmdline0, Config),
       try
-        {ok, parse_options(Arg0, Args, Config, Cmdline)}
+        {ok, parse_options(Args, Config, Cmdline)}
       catch
         throw:{error, Reason} ->
           {error, Reason}
@@ -70,41 +70,41 @@ usage(#{config := Config, arg0 := Arg0}) ->
 usage(Config, Arg0) ->
   cmdline_usage:format(Config, Arg0).
 
--spec parse_options(string(), [string()], cmdline_config:config(),
+-spec parse_options([string()], cmdline_config:config(),
                     cmdline()) -> cmdline().
-parse_options(Arg0, ["--" | Args], Config, Cmdline) ->
-  parse_arguments(Arg0, Args, Config, Cmdline);
-parse_options(Arg0, [[$- | [$- | Name]] | Args], Config, Cmdline) ->
-  parse_option(Name, Arg0, Args, Config, Cmdline);
-parse_options(_Arg0, ["-" | _Args], _Config, _Cmdline) ->
+parse_options(["--" | Args], Config, Cmdline) ->
+  parse_arguments(Args, Config, Cmdline);
+parse_options([[$- | [$- | Name]] | Args], Config, Cmdline) ->
+  parse_option(Name, Args, Config, Cmdline);
+parse_options(["-" | _Args], _Config, _Cmdline) ->
   throw({error, truncated_short_option});
-parse_options(Arg0, [[$- | Name] | Args], Config, Cmdline) ->
-  parse_option(Name, Arg0, Args, Config, Cmdline);
-parse_options(Arg0, Args, Config, Cmdline) ->
-  parse_arguments(Arg0, Args, Config, Cmdline).
+parse_options([[$- | Name] | Args], Config, Cmdline) ->
+  parse_option(Name, Args, Config, Cmdline);
+parse_options(Args, Config, Cmdline) ->
+  parse_arguments(Args, Config, Cmdline).
 
--spec parse_option(string(), string(), [string()], cmdline_config:config(),
+-spec parse_option(string(), [string()], cmdline_config:config(),
                    cmdline()) -> cmdline().
-parse_option(Name, Arg0, Args, Config, Cmdline) ->
+parse_option(Name, Args, Config, Cmdline) ->
   case cmdline_config:find_option(Name, Config) of
     {ok, {flag, Short, Long, _}} ->
       Cmdline2 = add_flag(Short, Long, Cmdline),
-      parse_options(Arg0, Args, Config, Cmdline2);
+      parse_options(Args, Config, Cmdline2);
     {ok, {option, Short, Long, _, _, _}} ->
       case Args of
         [] ->
           throw({error, {missing_option_value, Name}});
         [Value | Args2] ->
           Cmdline2 = add_option(Short, Long, Value, Cmdline),
-          parse_options(Arg0, Args2, Config, Cmdline2)
+          parse_options(Args2, Config, Cmdline2)
       end;
     error ->
       throw({error, {unknown_option, Name}})
   end.
 
--spec parse_arguments(string(), [string()], cmdline_config:config(),
-                      cmdline()) -> cmdline().
-parse_arguments(Arg0, Args, Config, Cmdline) ->
+-spec parse_arguments([string()], cmdline_config:config(), cmdline()) ->
+        cmdline().
+parse_arguments(Args, Config, Cmdline) ->
   ArgumentConfigs = cmdline_config:arguments(Config),
   NbArgumentConfigs = length(ArgumentConfigs),
   length(Args) < NbArgumentConfigs andalso
@@ -113,22 +113,22 @@ parse_arguments(Arg0, Args, Config, Cmdline) ->
   Arguments = lists:foldl(fun ({Value, {argument, Name, _}}, Acc) ->
                               Acc#{Name => Value}
                           end, #{}, lists:zip(Args1, ArgumentConfigs)),
-  parse_trailing_arguments(Arg0, Args2, Config,
+  parse_trailing_arguments(Args2, Config,
                            Cmdline#{arguments => Arguments}).
 
--spec parse_trailing_arguments(string(), [string()], cmdline_config:config(),
+-spec parse_trailing_arguments([string()], cmdline_config:config(),
                                cmdline()) -> cmdline().
-parse_trailing_arguments(Arg0, Args, Config, Cmdline) ->
+parse_trailing_arguments(Args, Config, Cmdline) ->
   case cmdline_config:find_trailing_arguments(Config) of
     {ok, {trailing_arguments, _, _}} ->
       Cmdline#{trailing_arguments => Args};
     error ->
-      parse_commands(Arg0, Args, Config, Cmdline)
+      parse_commands(Args, Config, Cmdline)
   end.
 
--spec parse_commands(string(), [string()], cmdline_config:config(),
-                     cmdline()) -> cmdline().
-parse_commands(_Arg0, Args, Config, Cmdline) ->
+-spec parse_commands([string()], cmdline_config:config(), cmdline()) ->
+        cmdline().
+parse_commands(Args, Config, Cmdline) ->
   case cmdline_config:commands(Config) of
     [] ->
       Args /= [] andalso throw({error, unhandled_arguments}),
