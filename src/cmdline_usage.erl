@@ -37,9 +37,17 @@ format(Config, Arg0) ->
   Options = cmdline_config:sort_options(cmdline_config:options(Config)),
   OptionSection = ["\nOPTIONS\n\n", format_options(Options, ColumnWidth)],
   %% Arguments
-  ArgumentSection = ["\nARGUMENTS\n\n",
-                    format_arguments(Arguments, ColumnWidth),
-                    maybe_format_trailing_arguments(Config, ColumnWidth)],
+  HasArguments = Arguments /= [],
+  HasTrailingArguments =
+    cmdline_config:find_trailing_arguments(Config) /= error,
+  ArgumentSection = case HasArguments or HasTrailingArguments  of
+                      true ->
+                        ["\nARGUMENTS\n\n",
+                         format_arguments(Arguments, ColumnWidth),
+                         maybe_format_trailing_arguments(Config, ColumnWidth)];
+                      false ->
+                        []
+                    end,
   %% Commands
   CommandSection = case Commands of
                      [] -> "";
