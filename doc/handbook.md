@@ -26,6 +26,16 @@ On failure, parsing functions return `{error, Reason}` where `Reason`
 describes the error. The `cmdline:format_error/1` function can be used to
 obtain a human-readable error message from an error reason.
 
+## Processing
+The `cmdline:process/3` and `cmdline:process/4` fonctions can be use to parse
+command line arguments and handle help and errors in one step.
+
+These functions are called the same way as parsing functions. On success, they
+return a command line value. On failure, they print the formatted error
+message on the error output and exit with status code 1. If a help option was
+passed, or if the `help` command was used, they print the usage string to the
+standard output and exit with status code 0.
+
 ## Command line data
 The following functions can be used to obtain information from a command line
 value returned from a parsing function:
@@ -82,9 +92,7 @@ Options are set by using either the short name preceded by `-` or the long
 name preceded by `--`. If an option is set multiple times, the only value
 retained is the last one.
 
-A `-h`/`--help` flag is always defined. When the option is set, the parsing
-function will print the usage string to the error output and exit with a
-status code equal to zero.
+A `-h`/`--help` flag is always defined.
 
 ## Arguments
 Arguments are defined with the following tuple:

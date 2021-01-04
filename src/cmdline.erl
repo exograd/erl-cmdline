@@ -14,11 +14,11 @@
 
 -module(cmdline).
 
--export([parse/3, parse/4, usage/1, usage/2,
+-export([process/3, process/4, parse/3, parse/4, usage/1, usage/2,
          program_name/1,
          is_option_set/2, option/2, option/3, argument/2,
          trailing_arguments/1, command/1, command_arguments/1,
-         format_error/1]).
+         format_error/1, help/1]).
 
 -export_type([config/0, cmdline/0, options/0, arguments/0,
               parsing_options/0, error/0,
@@ -48,6 +48,25 @@
                | {unknown_command, string()}.
 
 -type optional_string() :: string() | undefined.
+
+-spec process(string(), [string()], config()) -> cmdline().
+process(ProgramName, Args, Config) ->
+  process(ProgramName, Args, Config, #{}).
+
+-spec process(string(), [string()], config(), parsing_options()) -> cmdline().
+process(ProgramName, Args, Config, Options) ->
+  case parse(ProgramName, Args, Config, Options) of
+    {ok, Cmdline = #{command := "help"}} ->
+      help(Cmdline);
+    {ok, Cmdline = #{options := #{"help" := true}}} ->
+      help(Cmdline);
+    {ok, Cmdline} ->
+      Cmdline;
+    {error, Reason} ->
+      ReasonString = cmdline:format_error(Reason),
+      io:format(standard_error, "error: ~ts~n", [ReasonString]),
+      erlang:halt(1)
+  end.
 
 -spec parse(string(), [string()], config()) ->
         {ok, cmdline()} | {error, error()}.
@@ -124,16 +143,11 @@ parse_option(Name, Args, Config, Cmdline) ->
 -spec maybe_parse_arguments([string()], config(), cmdline()) ->
         cmdline().
 maybe_parse_arguments(Args, Config, Cmdline) ->
-  case is_option_set("help", Cmdline) of
+  case short_circuit(Cmdline) of
     true ->
-      help(Cmdline);
+      Cmdline;
     false ->
-      case short_circuit(Cmdline) of
-        true ->
-          Cmdline;
-        false ->
-          parse_arguments(Args, Config, Cmdline)
-      end
+      parse_arguments(Args, Config, Cmdline)
   end.
 
 -spec parse_arguments([string()], config(), cmdline()) ->
@@ -174,12 +188,7 @@ parse_commands(Args, Config, Cmdline) ->
             false ->
               throw({error, {unknown_command, Name}});
             _ ->
-              Cmdline2 = Cmdline#{command => Name,
-                                  command_arguments => Args2},
-              case Name of
-                "help" -> help(Cmdline2);
-                _ -> Cmdline2
-              end
+              Cmdline#{command => Name, command_arguments => Args2}
           end;
         _ ->
           throw({error, missing_command})
@@ -188,12 +197,8 @@ parse_commands(Args, Config, Cmdline) ->
 
 -spec short_circuit(cmdline()) -> boolean().
 short_circuit(Cmdline = #{parsing_options := ParsingOptions}) ->
-  case maps:find(short_circuit_options, ParsingOptions) of
-    {ok, Options} ->
-      short_circuit(Options, Cmdline);
-    error ->
-      false
-  end.
+  Options = maps:get(short_circuit_options, ParsingOptions, []),
+  short_circuit(["help" | Options], Cmdline).
 
 -spec short_circuit([string()], cmdline()) -> boolean().
 short_circuit([], _) ->

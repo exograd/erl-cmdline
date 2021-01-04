@@ -9,22 +9,16 @@
 main(Args) ->
   io:setopts([{encoding, unicode}]),
   ProgramName = escript:script_name(),
-  case cmdline:parse(ProgramName, Args, cmdline_config()) of
-    {ok, Cmdline} ->
-      OutputPath = cmdline:option("o", Cmdline),
-      Format = cmdline:argument("format", Cmdline),
-      InputPaths = cmdline:trailing_arguments(Cmdline),
-      case cmdline:is_option_set("verbose", Cmdline) of
-        true ->
-          io:format("reading form ~0tp~n", [InputPaths]),
-          io:format("writing to ~ts using format ~ts~n", [OutputPath, Format]);
-        false ->
-          ok
-      end;
-    {error, Reason} ->
-      io:format(standard_error, "error: ~ts~n",
-                [cmdline:format_error(Reason)]),
-      erlang:halt(1)
+  Cmdline = cmdline:process(ProgramName, Args, cmdline_config()),
+  OutputPath = cmdline:option("o", Cmdline),
+  Format = cmdline:argument("format", Cmdline),
+  InputPaths = cmdline:trailing_arguments(Cmdline),
+  case cmdline:is_option_set("verbose", Cmdline) of
+    true ->
+      io:format("reading form ~0tp~n", [InputPaths]),
+      io:format("writing to ~ts using format ~ts~n", [OutputPath, Format]);
+    false ->
+      ok
   end.
 
 -spec cmdline_config() -> cmdline:config().

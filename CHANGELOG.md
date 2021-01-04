@@ -3,6 +3,8 @@
 # Next Version
 ## Features
 - Add `cmdline:program_name/1`.
+- Add `cmdline:process/3` and `cmdline:process/4` to automatically handle the
+  help option, the help command and any error.
 ## Misc
 - Remove the `handle_help` option and always add the help option and command.
 - Introduce `cmdline:config/0` as alias for `cmdline_config:config/0`.
