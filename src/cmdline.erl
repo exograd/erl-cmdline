@@ -27,7 +27,7 @@
 
 -type cmdline() :: #{config := cmdline_config:config(),
                      parsing_options := parsing_options(),
-                     arg0 := string(),
+                     program_name := string(),
                      options := options(),
                      arguments := arguments(),
                      trailing_arguments => [string()],
@@ -51,18 +51,18 @@
 
 -spec parse(string(), [string()], config()) ->
         {ok, cmdline()} | {error, error()}.
-parse(Arg0, Args, Config) ->
-  parse(Arg0, Args, Config, #{}).
+parse(ProgramName, Args, Config) ->
+  parse(ProgramName, Args, Config, #{}).
 
 -spec parse(string(), [string()], config(), parsing_options()) ->
         {ok, cmdline()} | {error, error()}.
-parse(Arg0, Args, Config0, Options) ->
+parse(ProgramName, Args, Config0, Options) ->
   Config = init_config(Config0, Options),
   case cmdline_config:validate(Config) of
     ok ->
       Cmdline0 = #{config => Config,
                    parsing_options => Options,
-                   arg0 => Arg0,
+                   program_name => ProgramName,
                    options => #{},
                    arguments => #{}},
       Cmdline = add_default_options(Cmdline0, Config),
@@ -87,12 +87,12 @@ init_config(Config0, Options) ->
   end.
 
 -spec usage(cmdline()) -> unicode:chardata().
-usage(#{config := Config, arg0 := Arg0}) ->
-  usage(Config, Arg0).
+usage(#{config := Config, program_name := ProgramName}) ->
+  usage(Config, ProgramName).
 
--spec usage(config(), Arg0 :: string()) -> unicode:chardata().
-usage(Config, Arg0) ->
-  cmdline_usage:format(Config, Arg0).
+-spec usage(config(), ProgramName :: string()) -> unicode:chardata().
+usage(Config, ProgramName) ->
+  cmdline_usage:format(Config, ProgramName).
 
 -spec parsing_options([string()], config(),
                     cmdline()) -> cmdline().

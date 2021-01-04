@@ -8,9 +8,9 @@
 
 main(Args) ->
   io:setopts([{encoding, unicode}]),
-  Arg0 = escript:script_name(),
+  ProgramName = escript:script_name(),
   Options = #{handle_help => true},
-  case cmdline:parse(Arg0, Args, cmdline_config(), Options) of
+  case cmdline:parse(ProgramName, Args, cmdline_config(), Options) of
     {ok, Cmdline} ->
       OutputPath = cmdline:option("o", Cmdline),
       Format = cmdline:argument("format", Cmdline),

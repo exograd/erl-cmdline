@@ -16,8 +16,8 @@
 
 -export([format/2]).
 
--spec format(cmdline:config(), Arg0 :: string()) -> unicode:chardata().
-format(Config, Arg0) ->
+-spec format(cmdline:config(), ProgramName :: string()) -> unicode:chardata().
+format(Config, ProgramName) ->
   %% Program name and arguments
   Arguments = cmdline_config:arguments(Config),
   Commands = cmdline_config:sort_commands(cmdline_config:commands(Config)),
@@ -25,7 +25,7 @@ format(Config, Arg0) ->
                   [] -> [];
                   _ -> " <command> [...]"
                 end,
-  FirstLine = ["Usage: ", Arg0, " OPTIONS",
+  FirstLine = ["Usage: ", ProgramName, " OPTIONS",
                format_argument_line(Arguments),
                maybe_format_trailing_argument_line(Config),
                CommandLine,
