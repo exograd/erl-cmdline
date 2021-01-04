@@ -9,7 +9,11 @@
 main(Args) ->
   io:setopts([{encoding, unicode}]),
   ProgramName = escript:script_name(),
-  Cmdline = cmdline:process(ProgramName, Args, cmdline_config()),
+  Config = [{flag, "v", "verbose", "print debug information"},
+            {option, "o", undefined, "path", "-", "the output file"},
+            {argument, "format", "the output format"},
+            {trailing_arguments, "path", "input files"}],
+  Cmdline = cmdline:process(ProgramName, Args, Config),
   OutputPath = cmdline:option("o", Cmdline),
   Format = cmdline:argument("format", Cmdline),
   InputPaths = cmdline:trailing_arguments(Cmdline),
@@ -20,10 +24,3 @@ main(Args) ->
     false ->
       ok
   end.
-
--spec cmdline_config() -> cmdline:config().
-cmdline_config() ->
-  [{flag, "v", "verbose", "print debug information"},
-   {option, "o", undefined, "path", "-", "the output file"},
-   {argument, "format", "the output format"},
-   {trailing_arguments, "path", "input files"}].

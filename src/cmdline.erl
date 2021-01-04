@@ -14,7 +14,8 @@
 
 -module(cmdline).
 
--export([process/3, process/4, parse/3, parse/4, usage/1, usage/2,
+-export([process/3, process/4, process_command/2, process_command/3,
+         parse/3, parse/4, usage/1, usage/2,
          program_name/1,
          is_option_set/2, option/2, option/3, argument/2,
          trailing_arguments/1, command/1, command_arguments/1,
@@ -67,6 +68,18 @@ process(ProgramName, Args, Config, Options) ->
       io:format(standard_error, "error: ~ts~n", [ReasonString]),
       erlang:halt(1)
   end.
+
+-spec process_command(cmdline(), config()) -> cmdline().
+process_command(Cmdline, Config) ->
+  process_command(Cmdline, Config, #{}).
+
+-spec process_command(cmdline(), config(), parsing_options()) -> cmdline().
+process_command(#{program_name := ParentProgramName,
+                  command := Command,
+                  command_arguments := CommandArguments},
+                Config, Options) ->
+  ProgramName = ParentProgramName ++ " " ++ Command,
+  cmdline:process(ProgramName, CommandArguments, Config, Options).
 
 -spec parse(string(), [string()], config()) ->
         {ok, cmdline()} | {error, error()}.

@@ -36,6 +36,12 @@ message on the error output and exit with status code 1. If a help option was
 passed, or if the `help` command was used, they print the usage string to the
 standard output and exit with status code 0.
 
+The `cmdline:process_command/2` and `cmdline:process_command/3` functions
+behave similarly, but take a command line value instead of a program name and
+argument list. They are used to process the arguments of a command based on
+the command line value returned by a parent command or by top level argument
+processing.
+
 ## Command line data
 The following functions can be used to obtain information from a command line
 value returned from a parsing function:
