@@ -46,7 +46,8 @@ full_config() ->
 
 parse_invalid_options_test_() ->
   Config = option_config(),
-  Parse = fun (Args) -> cmdline:parse("test", Args, Config) end,
+  Options = #{program_name => "test"},
+  Parse = fun (Args) -> cmdline:parse(Args, Config, Options) end,
   [?_assertEqual({error, truncated_short_option},
                  Parse(["-"])),
    ?_assertEqual({error, truncated_short_option},
@@ -70,7 +71,8 @@ parse_invalid_options_test_() ->
 
 parse_invalid_arguments_test_() ->
   Config = argument_config(),
-  Parse = fun (Args) -> cmdline:parse("test", Args, Config) end,
+  Options = #{program_name => "test"},
+  Parse = fun (Args) -> cmdline:parse(Args, Config, Options) end,
   [?_assertEqual({error, missing_arguments},
                  Parse([])),
    ?_assertEqual({error, missing_arguments},
@@ -82,7 +84,8 @@ parse_invalid_arguments_test_() ->
 
 parse_test_() ->
   Args = ["-a", "--c_opt", "--y_opt", "1", "-z", "2", "foo", "bar"],
-  {ok, C} = cmdline:parse("test", Args, full_config()),
+  Options = #{program_name => "test"},
+  {ok, C} = cmdline:parse(Args, full_config(), Options),
   [?_assert(cmdline:is_option_set("a", C)),
    ?_assertNot(cmdline:is_option_set("b", C)),
    ?_assertNot(cmdline:is_option_set("b_opt", C)),
@@ -97,22 +100,25 @@ parse_test_() ->
 
 parse_separator_test_() ->
   Args = ["--", "-a", "--unknown"],
-  {ok, C} = cmdline:parse("test", Args, full_config()),
+  Options = #{program_name => "test"},
+  {ok, C} = cmdline:parse(Args, full_config(), Options),
   [?_assertNot(cmdline:is_option_set("a", C)),
    ?_assertEqual("-a", cmdline:argument("arg1", C)),
    ?_assertEqual("--unknown", cmdline:argument("arg2", C))].
 
 parse_separator_without_arguments_test_() ->
   Args = ["-a", "-x", "1", "--"],
-  {ok, C} = cmdline:parse("test", Args, option_config()),
+  Options = #{program_name => "test"},
+  {ok, C} = cmdline:parse(Args, option_config(), Options),
   [?_assert(cmdline:is_option_set("a", C)),
    ?_assert(cmdline:is_option_set("x", C)),
    ?_assertEqual("1", cmdline:option("x", C))].
 
 parse_only_trailing_arguments_test_() ->
   Config = [{trailing_arguments, "args", ""} | option_config()],
+  Options = #{program_name => "test"},
   Parse = fun (Args) ->
-              {ok, C} = cmdline:parse("test", Args, Config),
+              {ok, C} = cmdline:parse(Args, Config, Options),
               cmdline:trailing_arguments(C)
           end,
   [?_assertEqual([], Parse([])),
@@ -123,8 +129,9 @@ parse_only_trailing_arguments_test_() ->
 
 parse_trailing_arguments_test_() ->
   Config = [{trailing_arguments, "args", ""} | full_config()],
+  Options = #{program_name => "test"},
   Parse = fun (Args) ->
-              {ok, C} = cmdline:parse("test", Args, Config),
+              {ok, C} = cmdline:parse(Args, Config, Options),
               cmdline:trailing_arguments(C)
           end,
   [?_assertEqual([], Parse(["a1", "a2"])),
@@ -133,7 +140,8 @@ parse_trailing_arguments_test_() ->
 
 parse_unknown_command_test_() ->
   Config = option_config() ++ command_config(),
-  Parse = fun (Args) -> cmdline:parse("test", Args, Config) end,
+  Options = #{program_name => "test"},
+  Parse = fun (Args) -> cmdline:parse(Args, Config, Options) end,
   [?_assertEqual({error, {unknown_command, "foo"}},
                  Parse(["foo"])),
    ?_assertEqual({error, {unknown_command, "foo"}},
@@ -141,8 +149,9 @@ parse_unknown_command_test_() ->
 
 parse_only_commands_test_() ->
   Config = option_config() ++ command_config(),
+  Options = #{program_name => "test"},
   Parse = fun (Args) ->
-              {ok, C} = cmdline:parse("test", Args, Config),
+              {ok, C} = cmdline:parse(Args, Config, Options),
               {cmdline:command(C), cmdline:command_arguments(C)}
           end,
   [?_assertEqual({"bye", []},
@@ -158,8 +167,9 @@ parse_only_commands_test_() ->
 
 parse_commands_test_() ->
   Config = full_config() ++ command_config(),
+  Options = #{program_name => "test"},
   Parse = fun (Args) ->
-              {ok, C} = cmdline:parse("test", Args, Config),
+              {ok, C} = cmdline:parse(Args, Config, Options),
               {cmdline:command(C), cmdline:command_arguments(C)}
           end,
   [?_assertEqual({"bye", []},
@@ -179,8 +189,9 @@ parse_short_circuit_options_test_() ->
             {option, "y", "y_opt", "value", undefined, ""},
             {argument, "arg", ""}],
   Parse = fun (Args, ShortCircuitOpts) ->
-              Options = #{short_circuit_options => ShortCircuitOpts},
-              cmdline:parse("test", Args, Config, Options)
+              Options = #{program_name => "test",
+                          short_circuit_options => ShortCircuitOpts},
+              cmdline:parse(Args, Config, Options)
           end,
   [?_assertMatch({error, missing_arguments},
                  Parse([], [])),

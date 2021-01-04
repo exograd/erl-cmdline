@@ -14,8 +14,8 @@
 
 -module(cmdline).
 
--export([process/3, process/4, process_command/2, process_command/3,
-         parse/3, parse/4, usage/1, usage/2,
+-export([process/2, process/3, process_command/2, process_command/3,
+         parse/2, parse/3, usage/1, usage/2,
          program_name/1,
          is_option_set/2, option/2, option/3, argument/2,
          trailing_arguments/1, command/1, command_arguments/1,
@@ -39,7 +39,8 @@
 -type options() :: #{string() := string() | boolean()}.
 -type arguments() :: #{string() := string()}.
 
--type parsing_options() :: #{short_circuit_options => [string()]}.
+-type parsing_options() :: #{program_name => string(),
+                             short_circuit_options => [string()]}.
 
 -type error() :: truncated_short_option
                | {unknown_option, string()}
@@ -51,13 +52,13 @@
 
 -type optional_string() :: string() | undefined.
 
--spec process(string(), [string()], config()) -> cmdline().
-process(ProgramName, Args, Config) ->
-  process(ProgramName, Args, Config, #{}).
+-spec process([string()], config()) -> cmdline().
+process(Args, Config) ->
+  process(Args, Config, #{}).
 
--spec process(string(), [string()], config(), parsing_options()) -> cmdline().
-process(ProgramName, Args, Config, Options) ->
-  case parse(ProgramName, Args, Config, Options) of
+-spec process([string()], config(), parsing_options()) -> cmdline().
+process(Args, Config, Options) ->
+  case parse(Args, Config, Options) of
     {ok, Cmdline = #{command := "help"}} ->
       help(Cmdline);
     {ok, Cmdline = #{options := #{"help" := true}}} ->
@@ -80,17 +81,18 @@ process_command(#{program_name := ParentProgramName,
                   command_arguments := CommandArguments},
                 Config, Options) ->
   ProgramName = ParentProgramName ++ " " ++ Command,
-  cmdline:process(ProgramName, CommandArguments, Config, Options).
+  cmdline:process(CommandArguments, Config,
+                  Options#{program_name => ProgramName}).
 
--spec parse(string(), [string()], config()) ->
-        {ok, cmdline()} | {error, error()}.
-parse(ProgramName, Args, Config) ->
-  parse(ProgramName, Args, Config, #{}).
+-spec parse([string()], config()) -> {ok, cmdline()} | {error, error()}.
+parse(Args, Config) ->
+  parse(Args, Config, #{}).
 
--spec parse(string(), [string()], config(), parsing_options()) ->
+-spec parse([string()], config(), parsing_options()) ->
         {ok, cmdline()} | {error, error()}.
-parse(ProgramName, Args, Config0, Options) ->
+parse(Args, Config0, Options) ->
   Config = init_config(Config0, Options),
+  ProgramName = maps:get(program_name, Options, escript:script_name()),
   case cmdline_config:validate(Config) of
     ok ->
       Cmdline0 = #{config => Config,

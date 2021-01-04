@@ -5,9 +5,9 @@ The erl-cmdline project provides functions for command line processing.
 
 # Usage
 ## Parsing
-Command line arguments are parsed with either `cmdline:parse/3` or
-`cmdline:parse/4`. Parsing requires the program name, the list of program
-arguments and a configuration.
+Command line arguments are parsed with either `cmdline:parse/2` or
+`cmdline:parse/3`. Parsing requires the list of program arguments and a
+configuration.
 
 Example:
 ```erlang
@@ -15,7 +15,7 @@ Config = [{flag, "v", "verbose", "print debug information"},
           {option, "o", undefined, "path", "-", "the output file"},
           {argument, "format", "the output format"},
           {trailing_arguments, "path", "input files"}],
-cmdline:parse(ProgrameName, Args, Config).
+cmdline:parse(Args, Config).
 ```
 
 On success, parsing functions return `{ok, Cmdline}` where `Cmdline` is a
@@ -27,7 +27,7 @@ describes the error. The `cmdline:format_error/1` function can be used to
 obtain a human-readable error message from an error reason.
 
 ## Processing
-The `cmdline:process/3` and `cmdline:process/4` fonctions can be use to parse
+The `cmdline:process/2` and `cmdline:process/3` fonctions can be use to parse
 command line arguments and handle help and errors in one step.
 
 These functions are called the same way as parsing functions. On success, they
@@ -36,18 +36,16 @@ message on the error output and exit with status code 1. If a help option was
 passed, or if the `help` command was used, they print the usage string to the
 standard output and exit with status code 0.
 
-The `cmdline:process_command/2` and `cmdline:process_command/3` functions
-behave similarly, but take a command line value instead of a program name and
-argument list. They are used to process the arguments of a command based on
-the command line value returned by a parent command or by top level argument
-processing.
+The `cmdline:process_command/1` and `cmdline:process_command/2` functions
+behave similarly, but take a command line value instead of an argument
+list. They are used to process the arguments of a command based on the command
+line value returned by a parent command or by top level argument processing.
 
 ## Command line data
 The following functions can be used to obtain information from a command line
 value returned from a parsing function:
 
-- `cmdline:program_name/1`: return the program name originally passed to the
-  parsing function.
+- `cmdline:program_name/1`: return the program name.
 - `cmdline:is_option_set/2`: indicate whether an option has been defined or
   not. Note that options which have a default value are always defined even if
   they were not explicitely set in command line arguments.
@@ -140,8 +138,11 @@ command.
 Note that commands cannot be used if trailing arguments are defined.
 
 ## Parsing options
-The following options can be passed to parsing functions:
+The following options can be passed to parsing and processing functions:
 
+- `program_name`: a string indicating the name of the program to be used in
+  the usage string. The default value is obtained by calling
+  `escript:script_name/0`.
 - `short_circuit_options`: a list of option names which, when set, stop
   processing of command line arguments after options and before arguments and
   commands. This can be used for option which interrupt the normal flow of the

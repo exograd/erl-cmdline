@@ -13,6 +13,8 @@
 ## Misc
 - Remove the `handle_help` option and always add the help option and command.
 - Introduce `cmdline:config/0` as alias for `cmdline_config:config/0`.
+- Add a `program_name` option for the program name and use
+  `escript:script_name/0` by default.
 
 # 1.0.0
 First public version.
