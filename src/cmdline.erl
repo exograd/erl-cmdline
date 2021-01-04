@@ -15,6 +15,7 @@
 -module(cmdline).
 
 -export([parse/3, parse/4, usage/1, usage/2,
+         program_name/1,
          is_option_set/2, option/2, option/3, argument/2,
          trailing_arguments/1, command/1, command_arguments/1,
          format_error/1]).
@@ -212,6 +213,10 @@ short_circuit([Option | Options], Cmdline) ->
     false ->
       short_circuit(Options, Cmdline)
   end.
+
+-spec program_name(cmdline()) -> string().
+program_name(#{program_name := Name}) ->
+  Name.
 
 -spec is_option_set(string(), cmdline()) -> boolean().
 is_option_set(Name, #{options := Options}) ->

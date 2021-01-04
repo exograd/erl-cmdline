@@ -30,18 +30,21 @@ obtain a human-readable error message from an error reason.
 The following functions can be used to obtain information from a command line
 value returned from a parsing function:
 
-- `is_option_set/2`: indicates whether an option has been defined or not. Note
-  that options which have a default value are always defined even if they were
-  not explicitely set in command line arguments.
-- `option/2`, `option/3` return the value associated with an option or `true`
-  if the option is a flag. If the option was not set, the first function
-  returns `undefined` while the second function returns a specific value.
-- `argument/2` returns the value of an argument.
-- `trailing_arguments/1` returns the list of values corresponding to trailing
-  arguments.
-- `command/1` returns the name of the command used.
-- `command_arguments/2` returns the list of values following the command name
-  in the list of command line arguments.
+- `cmdline:program_name/1`: return the program name originally passed to the
+  parsing function.
+- `cmdline:is_option_set/2`: indicate whether an option has been defined or
+  not. Note that options which have a default value are always defined even if
+  they were not explicitely set in command line arguments.
+- `cmdline:option/2`, `cmdline:option/3`: return the value associated with an
+  option or `true` if the option is a flag. If the option was not set, the
+  first function returns `undefined` while the second function returns a
+  specific value.
+- `cmdline:argument/2`: return the value of an argument.
+- `cmdline:trailing_arguments/1`: return the list of values corresponding to
+  trailing arguments.
+- `cmdline:command/1`: return the name of the command used.
+- `cmdline:command_arguments/2`: return the list of values following the
+  command name in the list of command line arguments.
 
 ## Usage string
 The `cmdline:usage/1` function can be used to obtain a human-readable usage
