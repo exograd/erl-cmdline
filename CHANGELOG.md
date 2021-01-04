@@ -1,6 +1,8 @@
 % erl-cmdline changelog
 
 # Next Version
+
+# 1.1.0
 ## Features
 - Add `cmdline:program_name/1`.
 - Add `cmdline:process/3` and `cmdline:process/4` to automatically handle the
