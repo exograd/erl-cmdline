@@ -28,7 +28,7 @@ main(Args) ->
       erlang:halt(1)
   end.
 
--spec cmdline_config() -> cmdline_config:config().
+-spec cmdline_config() -> cmdline:config().
 cmdline_config() ->
   [{flag, "v", "verbose", "print debug information"},
    {option, "o", undefined, "path", "-", "the output file"},

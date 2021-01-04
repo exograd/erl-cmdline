@@ -19,9 +19,11 @@
          trailing_arguments/1, command/1, command_arguments/1,
          format_error/1]).
 
--export_type([cmdline/0, options/0, arguments/0,
+-export_type([config/0, cmdline/0, options/0, arguments/0,
               parsing_options/0, error/0,
               optional_string/0]).
+
+-type config() :: cmdline_config:config().
 
 -type cmdline() :: #{config := cmdline_config:config(),
                      parsing_options := parsing_options(),
@@ -47,12 +49,12 @@
 
 -type optional_string() :: string() | undefined.
 
--spec parse(string(), [string()], cmdline_config:config()) ->
+-spec parse(string(), [string()], config()) ->
         {ok, cmdline()} | {error, error()}.
 parse(Arg0, Args, Config) ->
   parse(Arg0, Args, Config, #{}).
 
--spec parse(string(), [string()], cmdline_config:config(), parsing_options()) ->
+-spec parse(string(), [string()], config(), parsing_options()) ->
         {ok, cmdline()} | {error, error()}.
 parse(Arg0, Args, Config0, Options) ->
   Config = init_config(Config0, Options),
@@ -74,8 +76,8 @@ parse(Arg0, Args, Config0, Options) ->
       error({invalid_config, Reason})
   end.
 
--spec init_config(cmdline_config:config(), parsing_options()) ->
-        cmdline_config:config().
+-spec init_config(config(), parsing_options()) ->
+        config().
 init_config(Config0, Options) ->
   case maps:get(handle_help, Options, false) of
     true ->
@@ -88,11 +90,11 @@ init_config(Config0, Options) ->
 usage(#{config := Config, arg0 := Arg0}) ->
   usage(Config, Arg0).
 
--spec usage(cmdline_config:config(), Arg0 :: string()) -> unicode:chardata().
+-spec usage(config(), Arg0 :: string()) -> unicode:chardata().
 usage(Config, Arg0) ->
   cmdline_usage:format(Config, Arg0).
 
--spec parsing_options([string()], cmdline_config:config(),
+-spec parsing_options([string()], config(),
                     cmdline()) -> cmdline().
 parsing_options(["--" | Args], Config, Cmdline) ->
   maybe_parse_arguments(Args, Config, Cmdline);
@@ -105,7 +107,7 @@ parsing_options([[$- | Name] | Args], Config, Cmdline) ->
 parsing_options(Args, Config, Cmdline) ->
   maybe_parse_arguments(Args, Config, Cmdline).
 
--spec parse_option(string(), [string()], cmdline_config:config(),
+-spec parse_option(string(), [string()], config(),
                    cmdline()) -> cmdline().
 parse_option(Name, Args, Config, Cmdline) ->
   case cmdline_config:find_option(Name, Config) of
@@ -124,7 +126,7 @@ parse_option(Name, Args, Config, Cmdline) ->
       throw({error, {unknown_option, Name}})
   end.
 
--spec maybe_parse_arguments([string()], cmdline_config:config(), cmdline()) ->
+-spec maybe_parse_arguments([string()], config(), cmdline()) ->
         cmdline().
 maybe_parse_arguments(Args, Config, Cmdline) ->
   case handle_help(Cmdline) andalso is_option_set("help", Cmdline) of
@@ -139,7 +141,7 @@ maybe_parse_arguments(Args, Config, Cmdline) ->
       end
   end.
 
--spec parse_arguments([string()], cmdline_config:config(), cmdline()) ->
+-spec parse_arguments([string()], config(), cmdline()) ->
         cmdline().
 parse_arguments(Args, Config, Cmdline) ->
   ArgumentConfigs = cmdline_config:arguments(Config),
@@ -153,7 +155,7 @@ parse_arguments(Args, Config, Cmdline) ->
   parse_trailing_arguments(Args2, Config,
                            Cmdline#{arguments => Arguments}).
 
--spec parse_trailing_arguments([string()], cmdline_config:config(),
+-spec parse_trailing_arguments([string()], config(),
                                cmdline()) -> cmdline().
 parse_trailing_arguments(Args, Config, Cmdline) ->
   case cmdline_config:find_trailing_arguments(Config) of
@@ -163,7 +165,7 @@ parse_trailing_arguments(Args, Config, Cmdline) ->
       parse_commands(Args, Config, Cmdline)
   end.
 
--spec parse_commands([string()], cmdline_config:config(), cmdline()) ->
+-spec parse_commands([string()], config(), cmdline()) ->
         cmdline().
 parse_commands(Args, Config, Cmdline) ->
   case cmdline_config:commands(Config) of
@@ -239,7 +241,7 @@ command(Cmdline) ->
 command_arguments(Cmdline) ->
   maps:get(command_arguments, Cmdline, []).
 
--spec add_default_options(cmdline(), cmdline_config:config()) -> cmdline().
+-spec add_default_options(cmdline(), config()) -> cmdline().
 add_default_options(Cmdline, []) ->
   Cmdline;
 add_default_options(Cmdline,

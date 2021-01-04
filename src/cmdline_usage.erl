@@ -16,7 +16,7 @@
 
 -export([format/2]).
 
--spec format(cmdline_config:config(), Arg0 :: string()) -> unicode:chardata().
+-spec format(cmdline:config(), Arg0 :: string()) -> unicode:chardata().
 format(Config, Arg0) ->
   %% Program name and arguments
   Arguments = cmdline_config:arguments(Config),
@@ -62,7 +62,7 @@ format_argument_line(Arguments) ->
                 [" <", Name, ">"]
             end, Arguments).
 
--spec maybe_format_trailing_argument_line(cmdline_config:config()) ->
+-spec maybe_format_trailing_argument_line(cmdline:config()) ->
         unicode:chardata().
 maybe_format_trailing_argument_line(Config) ->
   case cmdline_config:find_trailing_arguments(Config) of
@@ -117,8 +117,7 @@ format_arguments(Arguments, ColumnWidth) ->
                 [string:pad(Name, ColumnWidth), "  ", Description, $\n]
             end, Arguments).
 
--spec maybe_format_trailing_arguments(cmdline_config:config(),
-                                      non_neg_integer()) ->
+-spec maybe_format_trailing_arguments(cmdline:config(), non_neg_integer()) ->
         unicode:chardata().
 maybe_format_trailing_arguments(Config, ColumnWidth) ->
   case cmdline_config:find_trailing_arguments(Config) of
@@ -135,12 +134,11 @@ format_commands(Commands, ColumnWidth) ->
                 [string:pad(Name, ColumnWidth), "  ", Description, $\n]
             end, Commands).
 
--spec column_width(cmdline_config:config()) -> non_neg_integer().
+-spec column_width(cmdline:config()) -> non_neg_integer().
 column_width(Config) ->
   column_width(Config, 0).
 
--spec column_width(cmdline_config:config(), non_neg_integer()) ->
-        non_neg_integer().
+-spec column_width(cmdline:config(), non_neg_integer()) -> non_neg_integer().
 column_width([], Width) ->
   Width;
 column_width([Entry = {flag, _, _, _} | Config], Width) ->
