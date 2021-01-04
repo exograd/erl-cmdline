@@ -46,6 +46,7 @@
                | {missing_option_value, string()}
                | missing_arguments
                | unhandled_arguments
+               | missing_command
                | {unknown_command, string()}.
 
 -type optional_string() :: string() | undefined.
@@ -302,6 +303,8 @@ format_error(missing_arguments) ->
   "missing argument(s)";
 format_error(unhandled_arguments) ->
   "unhandled argument(s)";
+format_error(missing_command) ->
+  "missing command";
 format_error({unknown_command, Name}) ->
   io_lib:format("unknown command \"~ts\"", [Name]).
 

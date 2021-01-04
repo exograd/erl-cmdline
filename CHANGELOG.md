@@ -8,6 +8,8 @@
 - Add `cmdline:process_command/2` and `cmdline:process_command/3` to simplify
   parsing of command options and arguments. This greatly simplifies programs
   with nested commands.
+## Bugs
+- Handle `missing_command` errors in the error formatting function.
 ## Misc
 - Remove the `handle_help` option and always add the help option and command.
 - Introduce `cmdline:config/0` as alias for `cmdline_config:config/0`.
