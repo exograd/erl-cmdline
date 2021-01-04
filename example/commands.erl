@@ -8,10 +8,9 @@
 
 main(Args) ->
   io:setopts([{encoding, unicode}]),
-  ProgramName = escript:script_name(),
   Config = [{command, "foo", "the foo command"},
             {command, "bar", "the bar command"}],
-  Cmdline = cmdline:process(ProgramName, Args, Config),
+  Cmdline = cmdline:process(Args, Config),
   main(cmdline:command(Cmdline), Cmdline).
 
 main("foo", Cmdline) ->
