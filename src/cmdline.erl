@@ -38,8 +38,7 @@
 -type options() :: #{string() := string() | boolean()}.
 -type arguments() :: #{string() := string()}.
 
--type parsing_options() :: #{handle_help => boolean(),
-                             short_circuit_options => [string()]}.
+-type parsing_options() :: #{short_circuit_options => [string()]}.
 
 -type error() :: truncated_short_option
                | {unknown_option, string()}
@@ -79,13 +78,8 @@ parse(ProgramName, Args, Config0, Options) ->
 
 -spec init_config(config(), parsing_options()) ->
         config().
-init_config(Config0, Options) ->
-  case maps:get(handle_help, Options, false) of
-    true ->
-      cmdline_config:add_help(Config0);
-    false ->
-      Config0
-  end.
+init_config(Config0, _Options) ->
+  cmdline_config:add_help(Config0).
 
 -spec usage(cmdline()) -> unicode:chardata().
 usage(#{config := Config, program_name := ProgramName}) ->
@@ -130,7 +124,7 @@ parse_option(Name, Args, Config, Cmdline) ->
 -spec maybe_parse_arguments([string()], config(), cmdline()) ->
         cmdline().
 maybe_parse_arguments(Args, Config, Cmdline) ->
-  case handle_help(Cmdline) andalso is_option_set("help", Cmdline) of
+  case is_option_set("help", Cmdline) of
     true ->
       help(Cmdline);
     false ->
@@ -182,11 +176,9 @@ parse_commands(Args, Config, Cmdline) ->
             _ ->
               Cmdline2 = Cmdline#{command => Name,
                                   command_arguments => Args2},
-              case handle_help(Cmdline2) andalso Name == "help" of
-                true ->
-                  help(Cmdline2);
-                false ->
-                  Cmdline2
+              case Name of
+                "help" -> help(Cmdline2);
+                _ -> Cmdline2
               end
           end;
         _ ->
@@ -294,10 +286,6 @@ format_error(unhandled_arguments) ->
   "unhandled argument(s)";
 format_error({unknown_command, Name}) ->
   io_lib:format("unknown command \"~ts\"", [Name]).
-
--spec handle_help(cmdline()) -> boolean().
-handle_help(#{parsing_options := Options}) ->
-  maps:get(handle_help, Options, false).
 
 -spec help(cmdline()) -> no_return().
 help(Cmdline) ->

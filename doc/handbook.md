@@ -50,9 +50,6 @@ value returned from a parsing function:
 The `cmdline:usage/1` function can be used to obtain a human-readable usage
 string from a command line value returned by a parsing option.
 
-Note that using the `handle_help` parsing option will let parsing functions
-take care of usage display.
-
 # Configuration
 A configuration is a list of entries defining elements of the command line.
 
@@ -84,6 +81,10 @@ multiple options with the same names.
 Options are set by using either the short name preceded by `-` or the long
 name preceded by `--`. If an option is set multiple times, the only value
 retained is the last one.
+
+A `-h`/`--help` flag is always defined. When the option is set, the parsing
+function will print the usage string to the error output and exit with a
+status code equal to zero.
 
 ## Arguments
 Arguments are defined with the following tuple:
@@ -119,17 +120,14 @@ Commands are defined with the following tuple:
 
 A command is called by passing its name after all options and arguments.
 
+A `help` command is always defined if the configuration contains at least one
+command.
+
 Note that commands cannot be used if trailing arguments are defined.
 
 ## Parsing options
 The following options can be passed to parsing functions:
 
-- `handle_help`: a boolean indicating whether to automatically handle help
-  options or not (default: false). When used, a `-h`/`--help` option is
-  automatically added. If there is at least one command defined, a `help`
-  command is also added. When the option is set, or when the command is used,
-  the parsing function will print the usage string to the error output and
-  exit with a status code equal to zero.
 - `short_circuit_options`: a list of option names which, when set, stop
   processing of command line arguments after options and before arguments and
   commands. This can be used for option which interrupt the normal flow of the

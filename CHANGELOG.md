@@ -4,6 +4,7 @@
 ## Features
 - Add `cmdline:program_name/1`.
 ## Misc
+- Remove the `handle_help` option and always add the help option and command.
 - Introduce `cmdline:config/0` as alias for `cmdline_config:config/0`.
 
 # 1.0.0
