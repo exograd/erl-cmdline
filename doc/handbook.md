@@ -1,4 +1,4 @@
-% erl-pgc
+% erl-cmdline
 
 # Introduction
 The erl-cmdline project provides functions for command line processing.
@@ -20,7 +20,7 @@ cmdline:parse(Args, Config).
 
 On success, parsing functions return `{ok, Cmdline}` where `Cmdline` is a
 value that can be used to retrieve information about options, arguments and
-commands.
+ncommands.
 
 On failure, parsing functions return `{error, Reason}` where `Reason`
 describes the error. The `cmdline:format_error/1` function can be used to
@@ -66,6 +66,11 @@ string from a command line value returned by a parsing option.
 
 # Configuration
 A configuration is a list of entries defining elements of the command line.
+
+Textual data, e.g. option names or default values, can be provided either as
+strings or as binaries for convenience. Note that the application internally
+convert all textual data to binaries in order to facilitate multi-byte
+character support.
 
 ## Options
 Options are defined with the following tuple:

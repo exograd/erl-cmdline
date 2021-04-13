@@ -16,7 +16,8 @@
 
 -export([format/2]).
 
--spec format(cmdline:config(), ProgramName :: string()) -> unicode:chardata().
+-spec format(cmdline:config(), ProgramName :: unicode:chardata()) ->
+        unicode:chardata().
 format(Config, ProgramName) ->
   %% Program name and arguments
   Arguments = cmdline_config:arguments(Config),
@@ -100,8 +101,8 @@ format_option_label({flag, Short, Long, _}) ->
 format_option_label({option, Short, Long, Value, _, _}) ->
   [format_option_names(Short, Long), " <", Value, ">"].
 
--spec format_option_names(cmdline:optional_string(),
-                          cmdline:optional_string()) ->
+-spec format_option_names(Short :: cmdline:optional_string(),
+                          Long :: cmdline:optional_string()) ->
         unicode:chardata().
 format_option_names(Short, undefined) ->
   ["-", Short];

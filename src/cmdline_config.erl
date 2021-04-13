@@ -34,32 +34,35 @@
 -type flag() ::
         {flag,
          Short :: cmdline:optional_string(), Long :: cmdline:optional_string(),
-         Description :: string()}.
+         Description :: unicode:chardata()}.
 
 -type option() ::
         {option,
          Short :: cmdline:optional_string(), Long :: cmdline:optional_string(),
-         Value :: string(), Default :: cmdline:optional_string(),
-         Description :: string()}.
+         Value :: unicode:chardata(), Default :: cmdline:optional_string(),
+         Description :: unicode:chardata()}.
 
 -type argument() ::
-        {argument, Name :: string(), Description :: string()}.
+        {argument, Name :: unicode:chardata(),
+         Description :: unicode:chardata()}.
 
 -type trailing_arguments() ::
-        {trailing_arguments, Name :: string(), Description :: string()}.
+        {trailing_arguments, Name :: unicode:chardata(),
+         Description :: unicode:chardata()}.
 
 -type command() ::
-        {command, Name :: string(), Description :: string()}.
+        {command, Name :: unicode:chardata(),
+         Description :: unicode:chardata()}.
 
 -type validation_error() :: {invalid_entry, term()}
                           | trailing_arguments_and_commands.
 
--spec validate(config()) -> ok | {error, validation_error()}.
+-spec validate(config()) -> {ok, config()} | {error, validation_error()}.
 validate(Config) ->
   try
-    lists:map(fun validate_entry/1, Config),
-    validate_extra_arguments(Config),
-    ok
+    Config2 = lists:map(fun validate_entry/1, Config),
+    validate_extra_arguments(Config2),
+    {ok, Config2}
   catch
     throw:{error, Reason} ->
       {error, Reason}
@@ -75,17 +78,31 @@ validate_extra_arguments(Config) ->
     throw({error, trailing_arguments_and_commands}),
   ok.
 
--spec validate_entry(entry()) -> ok.
-validate_entry({flag, _, _, _}) ->
-  ok;
-validate_entry({option, _, _, _, _, _}) ->
-  ok;
-validate_entry({argument, _, _}) ->
-  ok;
-validate_entry({trailing_arguments, _, _}) ->
-  ok;
-validate_entry({command, _, _}) ->
-  ok;
+-spec validate_entry(entry()) -> entry().
+validate_entry({flag, Short0, Long0, Description0}) ->
+  Short = cmdline_text:text_to_binary(Short0),
+  Long = cmdline_text:text_to_binary(Long0),
+  Description = cmdline_text:text_to_binary(Description0),
+  {flag, Short, Long, Description};
+validate_entry({option, Short0, Long0, Value0, Default0, Description0}) ->
+  Short = cmdline_text:text_to_binary(Short0),
+  Long = cmdline_text:text_to_binary(Long0),
+  Value = cmdline_text:text_to_binary(Value0),
+  Default = cmdline_text:text_to_binary(Default0),
+  Description = cmdline_text:text_to_binary(Description0),
+  {option, Short, Long, Value, Default, Description};
+validate_entry({argument, Name0, Description0}) ->
+  Name = cmdline_text:text_to_binary(Name0),
+  Description = cmdline_text:text_to_binary(Description0),
+  {argument, Name, Description};
+validate_entry({trailing_arguments, Name0, Description0}) ->
+  Name = cmdline_text:text_to_binary(Name0),
+  Description = cmdline_text:text_to_binary(Description0),
+  {trailing_arguments, Name, Description};
+validate_entry({command, Name0, Description0}) ->
+  Name = cmdline_text:text_to_binary(Name0),
+  Description = cmdline_text:text_to_binary(Description0),
+  {command, Name, Description};
 validate_entry(Entry) ->
   throw({error, {invalid_entry, Entry}}).
 
@@ -112,17 +129,23 @@ options(Config) ->
                    false
                end, Config).
 
--spec find_option(string(), config()) -> {ok, flag() | option()} | error.
-find_option(_, []) ->
+-spec find_option(unicode:chardata(), config()) ->
+        {ok, flag() | option()} | error.
+find_option(Name0, Config) ->
+  Name = cmdline_text:text_to_binary(Name0),
+  find_option_1(Name, Config).
+
+-spec find_option_1(binary(), config()) -> {ok, flag() | option()} | error.
+find_option_1(_, []) ->
   error;
-find_option(Name, [Entry = {flag, Short, Long, _} | _]) when
+find_option_1(Name, [Entry = {flag, Short, Long, _} | _]) when
     Name =:= Short; Name =:= Long ->
   {ok, Entry};
-find_option(Name, [Entry = {option, Short, Long, _, _, _} | _]) when
+find_option_1(Name, [Entry = {option, Short, Long, _, _, _} | _]) when
     Name =:= Short; Name =:= Long ->
   {ok, Entry};
-find_option(Name, [_ | Config]) ->
-  find_option(Name, Config).
+find_option_1(Name, [_ | Config]) ->
+  find_option_1(Name, Config).
 
 -spec sort_options([flag() | option()]) -> [flag() | option()].
 sort_options(Options) ->

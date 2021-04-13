@@ -29,28 +29,28 @@
 
 -type cmdline() :: #{config := cmdline_config:config(),
                      parsing_options := parsing_options(),
-                     program_name := string(),
+                     program_name := binary(),
                      options := options(),
                      arguments := arguments(),
-                     trailing_arguments => [string()],
-                     command => string(),
-                     command_arguments => [string()]}.
+                     trailing_arguments => [binary()],
+                     command => binary(),
+                     command_arguments => [binary()]}.
 
--type options() :: #{string() := string() | boolean()}.
--type arguments() :: #{string() := string()}.
+-type options() :: #{binary() := binary() | boolean()}.
+-type arguments() :: #{binary() := binary()}.
 
--type parsing_options() :: #{program_name => string(),
-                             short_circuit_options => [string()]}.
+-type parsing_options() :: #{program_name => unicode:chardata(),
+                             short_circuit_options => [unicode:chardata()]}.
 
 -type error() :: truncated_short_option
-               | {unknown_option, string()}
-               | {missing_option_value, string()}
+               | {unknown_option, unicode:chardata()}
+               | {missing_option_value, unicode:chardata()}
                | missing_arguments
                | unhandled_arguments
                | missing_command
-               | {unknown_command, string()}.
+               | {unknown_command, unicode:chardata()}.
 
--type optional_string() :: string() | undefined.
+-type optional_string() :: unicode:chardata() | undefined.
 
 -spec process([string()], config()) -> cmdline().
 process(Args, Config) ->
@@ -59,9 +59,9 @@ process(Args, Config) ->
 -spec process([string()], config(), parsing_options()) -> cmdline().
 process(Args, Config, Options) ->
   case parse(Args, Config, Options) of
-    {ok, Cmdline = #{command := "help"}} ->
+    {ok, Cmdline = #{command := <<"help">>}} ->
       help(Cmdline);
-    {ok, Cmdline = #{options := #{"help" := true}}} ->
+    {ok, Cmdline = #{options := #{<<"help">> := true}}} ->
       help(Cmdline);
     {ok, Cmdline} ->
       Cmdline;
@@ -80,7 +80,7 @@ process_command(#{program_name := ParentProgramName,
                   command := Command,
                   command_arguments := CommandArguments},
                 Config, Options) ->
-  ProgramName = ParentProgramName ++ " " ++ Command,
+  ProgramName = <<ParentProgramName/binary, $\s, Command/binary>>,
   cmdline:process(CommandArguments, Config,
                   Options#{program_name => ProgramName}).
 
@@ -90,19 +90,21 @@ parse(Args, Config) ->
 
 -spec parse([string()], config(), parsing_options()) ->
         {ok, cmdline()} | {error, error()}.
-parse(Args, Config0, Options) ->
+parse(Args0, Config0, Options) ->
+  Args = lists:map(fun cmdline_text:text_to_binary/1, Args0),
   Config = init_config(Config0, Options),
-  ProgramName = maps:get(program_name, Options, escript:script_name()),
+  ProgramName0 = maps:get(program_name, Options, escript:script_name()),
+  ProgramName = cmdline_text:text_to_binary(ProgramName0),
   case cmdline_config:validate(Config) of
-    ok ->
-      Cmdline0 = #{config => Config,
+    {ok, Config2} ->
+      Cmdline0 = #{config => Config2,
                    parsing_options => Options,
                    program_name => ProgramName,
                    options => #{},
                    arguments => #{}},
-      Cmdline = add_default_options(Cmdline0, Config),
+      Cmdline = add_default_options(Cmdline0, Config2),
       try
-        {ok, parsing_options(Args, Config, Cmdline)}
+        {ok, parse_options(Args, Config2, Cmdline)}
       catch
         throw:{error, Reason} ->
           {error, Reason}
@@ -120,44 +122,41 @@ init_config(Config0, _Options) ->
 usage(#{config := Config, program_name := ProgramName}) ->
   usage(Config, ProgramName).
 
--spec usage(config(), ProgramName :: string()) -> unicode:chardata().
+-spec usage(config(), ProgramName :: unicode:chardata()) -> unicode:chardata().
 usage(Config, ProgramName) ->
   cmdline_usage:format(Config, ProgramName).
 
--spec parsing_options([string()], config(),
-                    cmdline()) -> cmdline().
-parsing_options(["--" | Args], Config, Cmdline) ->
+-spec parse_options([binary()], config(), cmdline()) -> cmdline().
+parse_options([<<"--">> | Args], Config, Cmdline) ->
   maybe_parse_arguments(Args, Config, Cmdline);
-parsing_options([[$- | [$- | Name]] | Args], Config, Cmdline) ->
+parse_options([<<"--", Name/binary>> | Args], Config, Cmdline) ->
   parse_option(Name, Args, Config, Cmdline);
-parsing_options(["-" | _Args], _Config, _Cmdline) ->
+parse_options([<<"-">> | _Args], _Config, _Cmdline) ->
   throw({error, truncated_short_option});
-parsing_options([[$- | Name] | Args], Config, Cmdline) ->
+parse_options([<<"-", Name/binary>> | Args], Config, Cmdline) ->
   parse_option(Name, Args, Config, Cmdline);
-parsing_options(Args, Config, Cmdline) ->
+parse_options(Args, Config, Cmdline) ->
   maybe_parse_arguments(Args, Config, Cmdline).
 
--spec parse_option(string(), [string()], config(),
-                   cmdline()) -> cmdline().
+-spec parse_option(binary(), [binary()], config(), cmdline()) -> cmdline().
 parse_option(Name, Args, Config, Cmdline) ->
   case cmdline_config:find_option(Name, Config) of
     {ok, {flag, Short, Long, _}} ->
       Cmdline2 = add_flag(Short, Long, Cmdline),
-      parsing_options(Args, Config, Cmdline2);
+      parse_options(Args, Config, Cmdline2);
     {ok, {option, Short, Long, _, _, _}} ->
       case Args of
         [] ->
           throw({error, {missing_option_value, Name}});
         [Value | Args2] ->
           Cmdline2 = add_option(Short, Long, Value, Cmdline),
-          parsing_options(Args2, Config, Cmdline2)
+          parse_options(Args2, Config, Cmdline2)
       end;
     error ->
       throw({error, {unknown_option, Name}})
   end.
 
--spec maybe_parse_arguments([string()], config(), cmdline()) ->
-        cmdline().
+-spec maybe_parse_arguments([binary()], config(), cmdline()) -> cmdline().
 maybe_parse_arguments(Args, Config, Cmdline) ->
   case short_circuit(Cmdline) of
     true ->
@@ -166,8 +165,7 @@ maybe_parse_arguments(Args, Config, Cmdline) ->
       parse_arguments(Args, Config, Cmdline)
   end.
 
--spec parse_arguments([string()], config(), cmdline()) ->
-        cmdline().
+-spec parse_arguments([binary()], config(), cmdline()) -> cmdline().
 parse_arguments(Args, Config, Cmdline) ->
   ArgumentConfigs = cmdline_config:arguments(Config),
   NbArgumentConfigs = length(ArgumentConfigs),
@@ -177,11 +175,9 @@ parse_arguments(Args, Config, Cmdline) ->
   Arguments = lists:foldl(fun ({Value, {argument, Name, _}}, Acc) ->
                               Acc#{Name => Value}
                           end, #{}, lists:zip(Args1, ArgumentConfigs)),
-  parse_trailing_arguments(Args2, Config,
-                           Cmdline#{arguments => Arguments}).
+  parse_trailing_arguments(Args2, Config, Cmdline#{arguments => Arguments}).
 
--spec parse_trailing_arguments([string()], config(),
-                               cmdline()) -> cmdline().
+-spec parse_trailing_arguments([binary()], config(), cmdline()) -> cmdline().
 parse_trailing_arguments(Args, Config, Cmdline) ->
   case cmdline_config:find_trailing_arguments(Config) of
     {ok, {trailing_arguments, _, _}} ->
@@ -190,8 +186,7 @@ parse_trailing_arguments(Args, Config, Cmdline) ->
       parse_commands(Args, Config, Cmdline)
   end.
 
--spec parse_commands([string()], config(), cmdline()) ->
-        cmdline().
+-spec parse_commands([binary()], config(), cmdline()) -> cmdline().
 parse_commands(Args, Config, Cmdline) ->
   case cmdline_config:commands(Config) of
     [] ->
@@ -214,9 +209,9 @@ parse_commands(Args, Config, Cmdline) ->
 -spec short_circuit(cmdline()) -> boolean().
 short_circuit(Cmdline = #{parsing_options := ParsingOptions}) ->
   Options = maps:get(short_circuit_options, ParsingOptions, []),
-  short_circuit(["help" | Options], Cmdline).
+  short_circuit([<<"help">> | Options], Cmdline).
 
--spec short_circuit([string()], cmdline()) -> boolean().
+-spec short_circuit([unicode:chardata()], cmdline()) -> boolean().
 short_circuit([], _) ->
   false;
 short_circuit([Option | Options], Cmdline) ->
@@ -227,27 +222,31 @@ short_circuit([Option | Options], Cmdline) ->
       short_circuit(Options, Cmdline)
   end.
 
--spec program_name(cmdline()) -> string().
+-spec program_name(cmdline()) -> binary().
 program_name(#{program_name := Name}) ->
   Name.
 
--spec is_option_set(string(), cmdline()) -> boolean().
-is_option_set(Name, #{options := Options}) ->
+-spec is_option_set(unicode:chardata(), cmdline()) -> boolean().
+is_option_set(Name0, #{options := Options}) ->
+  Name = cmdline_text:text_to_binary(Name0),
   maps:is_key(Name, Options).
 
--spec option(string(), cmdline()) -> string().
-option(Name, Cmdline) ->
+-spec option(unicode:chardata(), cmdline()) -> binary().
+option(Name0, Cmdline) ->
+  Name = cmdline_text:text_to_binary(Name0),
   option(Name, Cmdline, undefined).
 
--spec option(string(), cmdline(), optional_string()) -> string().
-option(Name, #{options := Options}, Default) ->
+-spec option(unicode:chardata(), cmdline(), optional_string()) -> binary().
+option(Name0, #{options := Options}, Default) ->
+  Name = cmdline_text:text_to_binary(Name0),
   maps:get(Name, Options, Default).
 
--spec argument(string(), cmdline()) -> string().
-argument(Name, #{arguments := Arguments}) ->
+-spec argument(unicode:chardata(), cmdline()) -> binary().
+argument(Name0, #{arguments := Arguments}) ->
+  Name = cmdline_text:text_to_binary(Name0),
   maps:get(Name, Arguments).
 
--spec trailing_arguments(cmdline()) -> string().
+-spec trailing_arguments(cmdline()) -> [binary()].
 trailing_arguments(Cmdline) ->
   maps:get(trailing_arguments, Cmdline, []).
 
@@ -269,32 +268,40 @@ add_default_options(Cmdline,
 add_default_options(Cmdline, [_ | Config]) ->
   add_default_options(Cmdline, Config).
 
--spec add_flag(optional_string(), optional_string(), cmdline()) -> cmdline().
+-spec add_flag(Short :: optional_string(), Long :: optional_string(),
+               cmdline()) ->
+        cmdline().
 add_flag(Short, Long, Cmdline) ->
   Cmdline2 = maybe_add_flag(Short, Cmdline),
   Cmdline3 = maybe_add_flag(Long, Cmdline2),
   Cmdline3.
 
--spec maybe_add_flag(optional_string(), cmdline()) -> cmdline().
+-spec maybe_add_flag(Name :: optional_string(), cmdline()) -> cmdline().
 maybe_add_flag(undefined, Cmdline) ->
   Cmdline;
-maybe_add_flag(Name, Cmdline = #{options := Options}) ->
+maybe_add_flag(Name0, Cmdline = #{options := Options}) ->
+  Name = cmdline_text:text_to_binary(Name0),
   Cmdline#{options => Options#{Name => true}}.
 
--spec add_option(optional_string(), optional_string(), string(), cmdline()) ->
+-spec add_option(Short :: optional_string(), Long :: optional_string(),
+                 Value :: unicode:chardata(), cmdline()) ->
         cmdline().
 add_option(Short, Long, Value, Cmdline) ->
   Cmdline2 = maybe_add_option(Short, Value, Cmdline),
   Cmdline3 = maybe_add_option(Long, Value, Cmdline2),
   Cmdline3.
 
--spec maybe_add_option(optional_string(), string(), cmdline()) -> cmdline().
+-spec maybe_add_option(Name :: optional_string(), Value :: unicode:chardata(),
+                       cmdline()) ->
+        cmdline().
 maybe_add_option(undefined, _, Cmdline) ->
   Cmdline;
-maybe_add_option(Name, Value, Cmdline = #{options := Options}) ->
+maybe_add_option(Name0, Value0, Cmdline = #{options := Options}) ->
+  Name = cmdline_text:text_to_binary(Name0),
+  Value = cmdline_text:text_to_binary(Value0),
   Cmdline#{options => Options#{Name => Value}}.
 
--spec format_error(error()) -> string().
+-spec format_error(error()) -> unicode:chardata().
 format_error(truncated_short_option) ->
   "truncated short option";
 format_error({unknown_option, Name}) ->

@@ -1,6 +1,8 @@
 % erl-cmdline changelog
 
 # Next Version
+## Features
+- Switch to a binary representation for multi-byte support.
 
 # 1.1.0
 ## Features
