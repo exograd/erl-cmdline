@@ -23,7 +23,7 @@
 
 -export_type([config/0, cmdline/0, options/0, arguments/0,
               parsing_options/0, error/0,
-              optional_string/0]).
+              optional_string/0, optional_binary/0]).
 
 -type config() :: cmdline_config:config().
 
@@ -51,6 +51,7 @@
                | {unknown_command, unicode:chardata()}.
 
 -type optional_string() :: unicode:chardata() | undefined.
+-type optional_binary() :: binary() | undefined.
 
 -spec process([string()], config()) -> cmdline().
 process(Args, Config) ->
@@ -250,11 +251,11 @@ argument(Name0, #{arguments := Arguments}) ->
 trailing_arguments(Cmdline) ->
   maps:get(trailing_arguments, Cmdline, []).
 
--spec command(cmdline()) -> optional_string().
+-spec command(cmdline()) -> optional_binary().
 command(Cmdline) ->
   maps:get(command, Cmdline, undefined).
 
--spec command_arguments(cmdline()) -> optional_string().
+-spec command_arguments(cmdline()) -> [binary()].
 command_arguments(Cmdline) ->
   maps:get(command_arguments, Cmdline, []).
 
