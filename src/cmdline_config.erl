@@ -154,13 +154,13 @@ sort_options(Options) ->
              end, Options).
 
 -spec option_sort_key(flag() | option()) -> term().
-option_sort_key({flag, Short, _, _}) when is_list(Short) ->
+option_sort_key({flag, Short, _, _}) when Short =/= undefined ->
   Short;
-option_sort_key({flag, undefined, Long, _}) when is_list(Long) ->
+option_sort_key({flag, undefined, Long, _}) when Long =/= undefined ->
   Long;
-option_sort_key({option, Short, _, _, _, _}) when is_list(Short) ->
+option_sort_key({option, Short, _, _, _, _}) when Short =/= undefined ->
   Short;
-option_sort_key({option, undefined, Long, _, _, _}) when is_list(Long) ->
+option_sort_key({option, undefined, Long, _, _, _}) when Long =/= undefined ->
   Long.
 
 -spec arguments(config()) -> [argument()].
