@@ -3,6 +3,8 @@
 # Next Version
 ## Features
 - Switch to a binary representation for multi-byte support.
+- Add a `print_usage_on_error` parsing options to print usage text when
+  parsing fails.
 
 # 1.1.0
 ## Features

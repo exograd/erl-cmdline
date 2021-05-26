@@ -40,7 +40,8 @@
 -type arguments() :: #{binary() := binary()}.
 
 -type parsing_options() :: #{program_name => unicode:chardata(),
-                             short_circuit_options => [unicode:chardata()]}.
+                             short_circuit_options => [unicode:chardata()],
+                             print_usage_on_error => boolean()}.
 
 -type error() :: truncated_short_option
                | {unknown_option, unicode:chardata()}
@@ -61,14 +62,23 @@ process(Args, Config) ->
 process(Args, Config, Options) ->
   case parse(Args, Config, Options) of
     {ok, Cmdline = #{command := <<"help">>}} ->
-      help(Cmdline);
+      help(Cmdline),
+      erlang:halt(0);
     {ok, Cmdline = #{options := #{<<"help">> := true}}} ->
-      help(Cmdline);
+      help(Cmdline),
+      erlang:halt(0);
     {ok, Cmdline} ->
       Cmdline;
-    {error, Reason} ->
+    {error, Reason, Cmdline} ->
       ReasonString = cmdline:format_error(Reason),
       io:format(standard_error, "error: ~ts~n", [ReasonString]),
+      case maps:get(print_usage_on_error, Options, false) of
+        true ->
+          io:put_chars(standard_error, "\n"),
+          help(Cmdline);
+        false ->
+          ok
+      end,
       erlang:halt(1)
   end.
 
@@ -85,12 +95,13 @@ process_command(#{program_name := ParentProgramName,
   cmdline:process(CommandArguments, Config,
                   Options#{program_name => ProgramName}).
 
--spec parse([string()], config()) -> {ok, cmdline()} | {error, error()}.
+-spec parse([string()], config()) ->
+        {ok, cmdline()} | {error, error(), cmdline()}.
 parse(Args, Config) ->
   parse(Args, Config, #{}).
 
 -spec parse([string()], config(), parsing_options()) ->
-        {ok, cmdline()} | {error, error()}.
+        {ok, cmdline()} | {error, error(), cmdline()}.
 parse(Args0, Config0, Options) ->
   Args = lists:map(fun cmdline_text:text_to_binary/1, Args0),
   Config = init_config(Config0, Options),
@@ -108,7 +119,7 @@ parse(Args0, Config0, Options) ->
         {ok, parse_options(Args, Config2, Cmdline)}
       catch
         throw:{error, Reason} ->
-          {error, Reason}
+          {error, Reason, Cmdline}
       end;
     {error, Reason} ->
       error({invalid_config, Reason})
@@ -318,7 +329,6 @@ format_error(missing_command) ->
 format_error({unknown_command, Name}) ->
   io_lib:format("unknown command \"~ts\"", [Name]).
 
--spec help(cmdline()) -> no_return().
+-spec help(cmdline()) -> ok.
 help(Cmdline) ->
-  io:put_chars(standard_error, usage(Cmdline)),
-  erlang:halt(0).
+  io:put_chars(standard_error, usage(Cmdline)).

@@ -152,3 +152,5 @@ The following options can be passed to parsing and processing functions:
   processing of command line arguments after options and before arguments and
   commands. This can be used for option which interrupt the normal flow of the
   program, e.g. `--version` which usually prints a version string and exits.
+- `print_usage_on_error`: print the usage text after the error message when
+  parsing fails.
